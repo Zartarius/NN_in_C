@@ -9,7 +9,7 @@ matrix_t zeroes(size_t m, size_t n) {
     matrix.n = n;
     matrix.values = (float**) calloc(m, sizeof(float*));
 
-    for (size_t i = 0; i < n; i++) {
+    for (size_t i = 0; i < m; i++) {
         matrix.values[i] = (float*) calloc(n, sizeof(float));
     }
     return matrix;
