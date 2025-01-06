@@ -54,6 +54,7 @@ matrix_t multiply(matrix_t a, matrix_t b) {
     return product;
 }
 
+// Print the matrix
 void print_matrix(matrix_t matrix) {
     for (size_t i = 0; i < matrix.m; i++) {
         for (size_t j = 0; j < matrix.n; j++) {
