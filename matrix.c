@@ -3,7 +3,7 @@
 #include "matrix.h"
 
 // Returns an m x n matrix, initialised to zero
-matrix_t zeroes(size_t m, size_t n) {
+matrix_t zeroes(const size_t m, const size_t n) {
     matrix_t matrix;
     matrix.m = m;
     matrix.n = n;
