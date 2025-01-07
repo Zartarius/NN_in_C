@@ -1,7 +1,9 @@
 #include "matrix.h"
 
 int main() {
-    matrix_t a = random_matrix(1000, 1500);
+    matrix_t a = random_matrix(10, 15);
     matrix_t b = transpose(a);
-    multiply(a, b);
+    print_matrix(a);
+    print_matrix(b);
+    print_matrix(multiply(a, b));
 }
