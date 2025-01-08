@@ -10,11 +10,14 @@
 // output_column: the index of the column containing the dependent variable
 // is_header: true if the file contains a header row, false otherwise
 matrix_t* read_csv(char* const filename, size_t output_column, bool is_header) {
-    FILE* data = fopen(filename, "r");
+    FILE* data = fopen(filename, "a+");
     assert(data != NULL);
+    // File must end in newline for function to work correctly
+    assert(fputc('\n', data) != EOF);
+    rewind(data);
     size_t num_cols = count_cols(data);
     size_t num_rows = count_rows(data) - (size_t) is_header;
-    
+
     float** dataframe = temporary_dataframe(num_rows, num_cols);
 
     char buffer[BUFFER_SIZE];
@@ -25,11 +28,12 @@ matrix_t* read_csv(char* const filename, size_t output_column, bool is_header) {
     size_t n = 0;
     size_t m = 0;
 
+    // fputs("\n", data);
     while (fgets(buffer, BUFFER_SIZE, data) != NULL) {
         char ascii_float[FLOAT_LENGTH];
         size_t index = 0;
         for (char* letter = buffer; *letter != '\0'; letter++) {
-            if (*letter == ',') {
+            if (*letter == ',' || *letter == '\n') {
                 ascii_float[index] = '\0';
                 dataframe[m][n++] = atof(ascii_float);
                 index = 0;
@@ -46,7 +50,7 @@ matrix_t* read_csv(char* const filename, size_t output_column, bool is_header) {
     for (size_t i = 0; i < num_rows; i++) {
         for (size_t j = 0; j < num_cols; j++) {
             if (j != output_column) {
-                X.values[i][j - (j > output_column)] = dataframe[i][j];
+                X.values[i][j - (size_t) (j > output_column)] = dataframe[i][j];
             }
         }
     }
@@ -69,7 +73,7 @@ static size_t count_cols(FILE* data) {
     char buffer[BUFFER_SIZE];
     fgets(buffer, BUFFER_SIZE, data);
     
-    for (char* letter = buffer; *letter != '\0'; letter++) {
+    for (char* letter = (char*) buffer; *letter != '\0'; letter++) {
         count += (*letter == ',');
     }
     rewind(data);
@@ -90,9 +94,12 @@ static size_t count_rows(FILE* data) {
 
 // Creates a temporary dataframe from the csv file
 static float** temporary_dataframe(const size_t m, const size_t n) {
-    float** dataframe = malloc(m * sizeof(char*));
+    float** dataframe = malloc(m * sizeof(float*));
+    assert(dataframe != NULL);
+
     for (size_t i = 0; i < m; i++) {
         dataframe[i] = malloc(n * sizeof(float));
+        assert(dataframe[i] != NULL);
     }
     return dataframe;
 }
