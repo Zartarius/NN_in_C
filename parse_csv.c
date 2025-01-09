@@ -1,6 +1,6 @@
 #include "parse_csv.h"
 
-#define BUFFER_SIZE 8192
+#define BUFFER_SIZE 16384
 #define FLOAT_LENGTH 16
 
 // Converts csv file into useable matrices
@@ -9,31 +9,30 @@
 // filename: the name of the file to read
 // output_column: the index of the column containing the dependent variable
 // is_header: true if the file contains a header row, false otherwise
-matrix_t* read_csv(char* const filename, size_t output_column, bool is_header) {
+matrix_t* read_csv(char* const filename, const char delimiter, size_t output_column, bool is_header) {
     FILE* data = fopen(filename, "a+");
     assert(data != NULL);
     // File must end in newline for function to work correctly
     assert(fputc('\n', data) != EOF);
     rewind(data);
-    size_t num_cols = count_cols(data);
+    size_t num_cols = count_cols(data, delimiter);
     size_t num_rows = count_rows(data) - (size_t) is_header;
 
     float** dataframe = temporary_dataframe(num_rows, num_cols);
 
-    char buffer[BUFFER_SIZE];
     // Skip to the second line if there is a header
+    char buffer[BUFFER_SIZE];
     if (is_header) {
         fgets(buffer, BUFFER_SIZE, data);
     }
-    size_t n = 0;
-    size_t m = 0;
 
-    // fputs("\n", data);
-    while (fgets(buffer, BUFFER_SIZE, data) != NULL) {
+    for (size_t m = 0; m < num_rows; m++) {
+        size_t n = 0;
+        fgets(buffer, BUFFER_SIZE, data);
         char ascii_float[FLOAT_LENGTH];
         size_t index = 0;
-        for (char* letter = buffer; *letter != '\0'; letter++) {
-            if (*letter == ',' || *letter == '\n') {
+        for (char* letter = (char*) buffer; *letter != '\0'; letter++) {
+            if (*letter == delimiter || *letter == '\n') {
                 ascii_float[index] = '\0';
                 dataframe[m][n++] = atof(ascii_float);
                 index = 0;
@@ -41,8 +40,6 @@ matrix_t* read_csv(char* const filename, size_t output_column, bool is_header) {
             }
             ascii_float[index++] = *letter;
         }
-        n = 0;
-        m++;
     }
     fclose(data);
 
@@ -68,13 +65,13 @@ matrix_t* read_csv(char* const filename, size_t output_column, bool is_header) {
 }
 
 // Returns the number of columns in the csv file
-static size_t count_cols(FILE* data) {
+static size_t count_cols(FILE* data, const char delimiter) {
     size_t count = 1;
     char buffer[BUFFER_SIZE];
     fgets(buffer, BUFFER_SIZE, data);
-    
+
     for (char* letter = (char*) buffer; *letter != '\0'; letter++) {
-        count += (*letter == ',');
+        count += (size_t) (*letter == delimiter);
     }
     rewind(data);
     return count;
@@ -86,6 +83,10 @@ static size_t count_rows(FILE* data) {
     char buffer[BUFFER_SIZE];
 
     while (fgets(buffer, BUFFER_SIZE, data) != NULL) {
+        if (buffer[0] == '\n') {
+            rewind(data);
+            return count;
+        }
         count++;
     }
     rewind(data);
