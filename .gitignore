@@ -1,0 +1,58 @@
+# Ignore compiled executables
+*.out
+*.o
+*.so
+*.a
+*.exe
+
+# Ignore build directories
+/build/
+/bin/
+/obj/
+/lib/
+
+# Ignore temporary files
+*.log
+*.tmp
+*.swp
+*.swo
+
+# Ignore core dumps
+core
+*.core
+
+# Ignore editor/IDE-specific files
+*.vscode/
+.idea/
+*.DS_Store
+
+# Ignore dependency files
+*.d
+*.dep
+Makefile.deps
+
+# Ignore CMake-generated files
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+build/
+Makefile
+
+# Ignore autotools-generated files
+*.lo
+*.la
+*.al
+.libs/
+.deps/
+configure
+config.log
+config.status
+autom4te.cache/
+
+# Ignore debug symbols and profiling files
+*.debug
+*.gdb
+*.prof
+*.gcda
+*.gcno
+*.gcov
