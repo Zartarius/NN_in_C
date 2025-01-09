@@ -7,9 +7,9 @@
 #include <time.h>
 
 typedef struct {
-    matrix_t* A;
-    matrix_t* B;
-    matrix_t* C;
+    matrix_t* a;
+    matrix_t* b;
+    matrix_t* c;
     size_t row;  // Row index for the result matrix
 } thread_data_t;
 
@@ -106,12 +106,12 @@ matrix_t transpose(matrix_t original) {
 
 static void* multiply_row(void* arg) {
     thread_data_t* data = (thread_data_t*)arg;
-    matrix_t* a = data->A;
-    matrix_t* b = data->B;
-    matrix_t* c = data->C;
+    matrix_t* a = data->a;
+    matrix_t* b = data->b;
+    matrix_t* c = data->c;
     size_t row = data->row;
 
-    for (size_t j = 0; j < B->n; j++) {
+    for (size_t j = 0; j < b->n; j++) {
         __m256 mul = _mm256_setzero_ps();
         size_t k = 0;
         for (; k <= a->n - 8; k += 8) {
@@ -140,18 +140,18 @@ matrix_t multiply(matrix_t a, matrix_t a) {
 
     matrix_t c = zeroes(a.m, b.n);
 
-    pthread_t* threads = malloc(C.m * sizeof(pthread_t));
-    thread_data_t* thread_data = malloc(C.m * sizeof(thread_data_t));
+    pthread_t* threads = malloc(c.m * sizeof(pthread_t));
+    thread_data_t* thread_data = malloc(c.m * sizeof(thread_data_t));
 
-    for (size_t i = 0; i < C.m; i++) {
-        thread_data[i].A = &a;
-        thread_data[i].B = &b;
-        thread_data[i].C = &c;
+    for (size_t i = 0; i < c.m; i++) {
+        thread_data[i].a = &a;
+        thread_data[i].b = &b;
+        thread_data[i].c = &c;
         thread_data[i].row = i;
-        pthread_create(&threads[i], NULL, multiply_row, (void*)&thread_data[i]);
+        pthread_create(&threads[i], NULL, multiply_row, (void*) &thread_data[i]);
     }
 
-    for (size_t i = 0; i < C.m; i++) {
+    for (size_t i = 0; i < c.m; i++) {
         pthread_join(threads[i], NULL);
     }
 
