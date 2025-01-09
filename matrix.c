@@ -135,7 +135,7 @@ static void* multiply_row(void* arg) {
     return NULL;
 }
 
-matrix_t multiply(matrix_t a, matrix_t a) {
+matrix_t multiply(matrix_t a, matrix_t b) {
     assert(a.n == b.m);
 
     matrix_t c = zeroes(a.m, b.n);
