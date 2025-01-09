@@ -115,6 +115,7 @@ static void* multiply_row(void* arg) {
         __m256 mul = _mm256_setzero_ps();
         size_t k = 0;
         for (; k <= A->n - 8; k += 8) {
+            
             __m256 a_vec = _mm256_load_ps(&A->values[row][k]);
             __m256 b_vec = _mm256_set_ps(
                 B->values[k + 7][j], B->values[k + 6][j], B->values[k + 5][j],

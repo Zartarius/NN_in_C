@@ -29,14 +29,6 @@ core
 # Ignore dependency files
 *.d
 *.dep
-Makefile.deps
-
-# Ignore CMake-generated files
-CMakeFiles/
-CMakeCache.txt
-cmake_install.cmake
-build/
-Makefile
 
 # Ignore autotools-generated files
 *.lo
