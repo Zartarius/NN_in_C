@@ -114,21 +114,24 @@ static void* multiply_row(void* arg) {
     for (size_t j = 0; j < b->n; j++) {
         __m256 mul = _mm256_setzero_ps();
         size_t k = 0;
-        for (; k <= a->n - 8; k += 8) {
+        while (k <= a->n - 8) {
             __m256 a_vec = _mm256_load_ps(&a->values[row][k]);
             __m256 b_vec = _mm256_set_ps(
                 b->values[k + 7][j], b->values[k + 6][j], b->values[k + 5][j],
                 b->values[k + 4][j], b->values[k + 3][j], b->values[k + 2][j],
                 b->values[k + 1][j], b->values[k][j]);
             mul = _mm256_add_ps(_mm256_mul_ps(a_vec, b_vec), mul);
+            k += 8;
         }
         float array_mul[8];
         _mm256_storeu_ps(array_mul, mul);
         float sum = array_mul[0] + array_mul[1] + array_mul[2] + array_mul[3] +
                     array_mul[4] + array_mul[5] + array_mul[6] + array_mul[7];
-        // for remaining
-        for (; k < a->n; k++) {
+
+        // For remaining
+        while (k < a->n) {
             sum += a->values[row][k] * b->values[k][j];
+            k++;
         }
         c->values[row][j] = sum;
     }
@@ -150,7 +153,6 @@ matrix_t multiply(matrix_t a, matrix_t b) {
         thread_data[i].row = i;
         pthread_create(&threads[i], NULL, multiply_row, (void*) &thread_data[i]);
     }
-
     for (size_t i = 0; i < c.m; i++) {
         pthread_join(threads[i], NULL);
     }
