@@ -136,10 +136,7 @@ static void* multiply_row(void* arg) {
 }
 
 matrix_t multiply(matrix_t A, matrix_t B) {
-    if (A.n != B.m) {
-        fprintf(stderr, "Matrix dimensions do not match for multiplication.\n");
-        return (matrix_t){0};
-    }
+    assert(A.n == B.m);
 
     matrix_t C = zeroes(A.m, B.n);
 
