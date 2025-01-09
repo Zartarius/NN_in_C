@@ -1,8 +1,16 @@
-#include <immintrin.h>
 #include <stdio.h>
 #include <assert.h>
 #include <time.h>
+#include <immintrin.h>
+#include <pthread.h>
 #include "matrix.h"
+
+typedef struct {
+    matrix_t* A;
+    matrix_t* B;
+    matrix_t* C;
+    size_t row; // Row index for the result matrix
+} thread_data_t;
 
 // Returns an m x n matrix, initialised to zero
 matrix_t zeroes(const size_t m, const size_t n) {
@@ -97,7 +105,57 @@ matrix_t transpose(matrix_t original) {
     return transposed;
 }
 
+static void* multiply_row(void* arg) {
+    thread_data_t* data = (thread_data_t*) arg;
+    matrix_t* A = data->A;
+    matrix_t* B = data->B;
+    matrix_t* C = data->C;
+    size_t row = data->row;
 
+    for (size_t j = 0; j < B->n; j++) {
+        C->values[row][j] = 0;
+        for (size_t k = 0; k < A->n; k++) {
+            C->values[row][j] += A->values[row][k] * B->values[k][j];
+        }
+    }
+    return NULL;
+}
+
+matrix_t* multiply(matrix_t* A, matrix_t* B) {
+    if (A->n != B->m) {
+        fprintf(stderr, "Matrix dimensions do not match for multiplication.\n");
+        return NULL;
+    }
+
+    matrix_t* C = (matrix_t*)malloc(sizeof(matrix_t));
+    C->m = A->m;
+    C->n = B->n;
+    C->values = (float**)malloc(C->m * sizeof(float*));
+    for (size_t i = 0; i < C->m; i++) {
+        C->values[i] = (float*)malloc(C->n * sizeof(float));
+    }
+
+    pthread_t* threads = (pthread_t*)malloc(C->m * sizeof(pthread_t));
+    thread_data_t* thread_data = (thread_data_t*)malloc(C->m * sizeof(thread_data_t));
+
+    for (size_t i = 0; i < C->m; i++) {
+        thread_data[i].A = A;
+        thread_data[i].B = B;
+        thread_data[i].C = C;
+        thread_data[i].row = i;
+        pthread_create(&threads[i], NULL, multiply_row, (void*)&thread_data[i]);
+    }
+
+    for (size_t i = 0; i < C->m; i++) {
+        pthread_join(threads[i], NULL);
+    }
+
+    free(threads);
+    free(thread_data);
+    return C;
+}
+
+/*
 // Returns the product of 2 matrices
 matrix_t multiply(matrix_t a, matrix_t b) {
     assert(a.n == b.m);
@@ -138,6 +196,7 @@ matrix_t multiply(matrix_t a, matrix_t b) {
     }
     return product;
 }
+*/
 
 /*
 // Returns the product of 2 matrices
