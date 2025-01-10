@@ -1,7 +1,7 @@
 # Compiler and flags
 CC = clang
-CFLAGS = -Wall -Wextra -O2 -mavx
-LDFLAGS = 
+CFLAGS = -Wall -Wextra -O2 -mavx -g
+LDFLAGS = -fsanitize=address,undefined
 
 # Target executable name
 TARGET = build/program
