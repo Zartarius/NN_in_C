@@ -6,12 +6,25 @@
 #include <stdio.h>
 #include <time.h>
 
+#define TILE_SIZE 8
+
+// Structure to pass arguments to the thread function
+typedef struct {
+    matrix_t *a;
+    matrix_t *b;
+    matrix_t *c;
+    size_t start_row;
+    size_t start_col;
+} thread_args_t;
+
+/*
 typedef struct {
     matrix_t* a;
     matrix_t* b;
     matrix_t* c;
     size_t row;  // Row index for the result matrix
 } thread_data_t;
+*/
 
 // Returns an m x n matrix, initialised to zero
 matrix_t zeroes(const size_t m, const size_t n) {
@@ -90,6 +103,103 @@ matrix_t transpose(matrix_t original) {
     return transposed;
 }
 
+// Function to compute the product of a tile using AVX
+static void *compute_tile(void *arg) {
+    thread_args_t *args = (thread_args_t *) arg;
+    matrix_t *a = args->a;
+    matrix_t *b = args->b;
+    matrix_t *c = args->c;
+    size_t start_row = args->start_row;
+    size_t start_col = args->start_col;
+
+    // Compute the product of the tile
+    for (size_t i = start_row; i < start_row + TILE_SIZE && i < a->m; i++) {
+        for (size_t j = start_col; j < start_col + TILE_SIZE && j < b->n; j++) {
+            __m256 sum_vec = _mm256_setzero_ps(); // Initialize AVX vector for accumulation
+            float sum = 0.0f;
+
+            // Process 8 elements at a time using AVX
+            size_t k = 0;
+            for (; k <= a->n - 8; k += 8) {
+                __m256 a_vec = _mm256_loadu_ps(&a->values[i * a->n + k]); // Load 8 elements from matrix A
+                __m256 b_vec = _mm256_set_ps(
+                    b->values[(k + 7) * b->n + j],
+                    b->values[(k + 6) * b->n + j],
+                    b->values[(k + 5) * b->n + j],
+                    b->values[(k + 4) * b->n + j],
+                    b->values[(k + 3) * b->n + j],
+                    b->values[(k + 2) * b->n + j],
+                    b->values[(k + 1) * b->n + j],
+                    b->values[k * b->n + j]
+                ); // Load 8 elements from matrix B
+                sum_vec = _mm256_add_ps(sum_vec, _mm256_mul_ps(a_vec, b_vec)); // Multiply and accumulate
+            }
+
+            // Sum the elements of the AVX vector
+            float temp[8];
+            _mm256_storeu_ps(temp, sum_vec);
+            for (size_t t = 0; t < 8; t++) {
+                sum += temp[t];
+            }
+
+            // Process remaining elements
+            for (; k < a->n; k++) {
+                sum += a->values[i * a->n + k] * b->values[k * b->n + j];
+            }
+
+            c->values[i * c->n + j] = sum; // Store the result
+        }
+    }
+
+    return NULL;
+}
+
+// Function to multiply two matrices using tiles, threads, and AVX
+matrix_t matrix_tile_multiply(matrix_t a, matrix_t b) {
+    assert(a.n == b.m);
+
+    // Create the result matrix
+    matrix_t c;
+    c.m = a.m;
+    c.n = b.n;
+    c.values = (float *) malloc(c.m * c.n * sizeof(float));
+    assert(c.values != NULL);
+
+    // Calculate the number of tiles
+    size_t num_tiles_row = (a.m + TILE_SIZE - 1) / TILE_SIZE;
+    size_t num_tiles_col = (b.n + TILE_SIZE - 1) / TILE_SIZE;
+
+    // Create threads for each tile
+    pthread_t threads[num_tiles_row * num_tiles_col];
+    thread_args_t args[num_tiles_row * num_tiles_col];
+
+    // Initialize thread arguments and create threads
+    for (size_t i = 0; i < num_tiles_row; i++) {
+        for (size_t j = 0; j < num_tiles_col; j++) {
+            // Create the thread arguments
+            args[i * num_tiles_col + j].a = &a;
+            args[i * num_tiles_col + j].b = &b;
+            args[i * num_tiles_col + j].c = &c;
+            args[i * num_tiles_col + j].start_row = i * TILE_SIZE;
+            args[i * num_tiles_col + j].start_col = j * TILE_SIZE;
+
+            // Create the thread
+            if (pthread_create(&threads[i * num_tiles_col + j], NULL, compute_tile, &args[i * num_tiles_col + j]) != 0) {
+                printf("Error: Failed to create thread\n");
+                exit(1);
+            }
+        }
+    }
+
+    // Wait for all threads to finish
+    for (size_t i = 0; i < num_tiles_row * num_tiles_col; i++) {
+        assert(pthread_join(threads[i], NULL) == 0);
+    }
+
+    return c;
+}
+
+/*
 static void* multiply_row(void* arg) {
     thread_data_t* data = (thread_data_t*)arg;
     matrix_t* a = data->a;
@@ -148,6 +258,7 @@ matrix_t multiply(matrix_t a, matrix_t b) {
     free(thread_data);
     return c;
 }
+*/
 
 void print_matrix(matrix_t matrix) {
     printf("\n");
