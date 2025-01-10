@@ -10,7 +10,5 @@
 matrix_t* read_csv(char* const filename, const char delimiter, size_t output_column, bool is_header);
 static size_t count_cols(FILE* data, const char delimiter);
 static size_t count_rows(FILE* data);
-static float** temporary_dataframe(const size_t m, const size_t n);
-static void free_dataframe(float** dataframe, const size_t m);
 
 #endif
