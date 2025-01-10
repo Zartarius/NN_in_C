@@ -15,8 +15,10 @@ static inline float float_abs(float num);
 void normalise(matrix_t matrix);
 void matrix_add_vector(matrix_t matrix, matrix_t vector);
 matrix_t transpose(matrix_t matrix);
-static void* multiply_row(void* arg);
-matrix_t multiply(matrix_t a, matrix_t b);
+static void *compute_tile(void *arg);
+matrix_t matrix_tile_multiply(matrix_t a, matrix_t b);
+// static void* multiply_row(void* arg);
+// matrix_t multiply(matrix_t a, matrix_t b);
 void print_matrix(matrix_t matrix);
 
 #endif
