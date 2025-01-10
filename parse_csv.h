@@ -8,7 +8,5 @@
 #include "matrix.h"
 
 matrix_t* read_csv(char* const filename, const char delimiter, size_t output_column, bool is_header);
-static size_t count_cols(FILE* data, const char delimiter);
-static size_t count_rows(FILE* data);
 
 #endif
