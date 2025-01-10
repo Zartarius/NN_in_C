@@ -18,7 +18,7 @@ matrix_t* read_csv(char* const filename, const char delimiter, size_t output_col
     size_t num_cols = count_cols(data, delimiter);
     size_t num_rows = count_rows(data) - (size_t) is_header;
 
-    float** dataframe = temporary_dataframe(num_rows, num_cols);
+    float* dataframe = malloc(num_rows * num_cols * sizeof(float));
 
     // Skip to the second line if there is a header
     char buffer[BUFFER_SIZE];
@@ -34,7 +34,8 @@ matrix_t* read_csv(char* const filename, const char delimiter, size_t output_col
         for (char* letter = (char*) buffer; *letter != '\0'; letter++) {
             if (*letter == delimiter || *letter == '\n') {
                 ascii_float[index] = '\0';
-                dataframe[m][n++] = atof(ascii_float);
+                dataframe[m * num_cols + n] = atof(ascii_float);
+                n++;
                 index = 0;
                 continue;
             }
@@ -47,20 +48,20 @@ matrix_t* read_csv(char* const filename, const char delimiter, size_t output_col
     for (size_t i = 0; i < num_rows; i++) {
         for (size_t j = 0; j < num_cols; j++) {
             if (j != output_column) {
-                X.values[i][j - (size_t) (j > output_column)] = dataframe[i][j];
+                X.values[i * (num_cols - 1) + (j - (size_t) (j > output_column))] = dataframe[i * num_cols + j];
             }
         }
     }
 
     matrix_t y = zeroes(num_rows, 1);
     for (size_t i = 0; i < num_rows; i++) {
-        y.values[i][0] = dataframe[i][output_column];
+        y.values[i] = dataframe[i * num_cols + output_column];
     }
+    free(dataframe);
 
     matrix_t* output = malloc(2 * sizeof(matrix_t));
     output[0] = X;
     output[1] = y;
-    free_dataframe(dataframe, num_rows);
     return output;
 }
 
@@ -91,24 +92,4 @@ static size_t count_rows(FILE* data) {
     }
     rewind(data);
     return count;
-}
-
-// Creates a temporary dataframe from the csv file
-static float** temporary_dataframe(const size_t m, const size_t n) {
-    float** dataframe = malloc(m * sizeof(float*));
-    assert(dataframe != NULL);
-
-    for (size_t i = 0; i < m; i++) {
-        dataframe[i] = malloc(n * sizeof(float));
-        assert(dataframe[i] != NULL);
-    }
-    return dataframe;
-}
-
-// Frees the temporary dataframe
-static void free_dataframe(float** dataframe, const size_t m) {
-    for (size_t i = 0; i < m; i++) {
-        free(dataframe[i]);
-    }
-    free(dataframe);
 }
