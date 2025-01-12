@@ -3,6 +3,9 @@
 #define BUFFER_SIZE 16384
 #define FLOAT_LENGTH 16
 
+static size_t count_cols(FILE* data, const char delimiter);
+static size_t count_rows(FILE* data);
+
 // Converts csv file into useable matrices
 // Returns an array of 2 matrix_t structs, X and y
 // Parameters:

@@ -1,6 +1,6 @@
 # Compiler and flags
 CC = clang
-CFLAGS = -Wall -Wextra -O2 -mavx -g
+CFLAGS = -Wall -Wextra -Ofast -mavx -g
 LDFLAGS = -fsanitize=address,undefined
 
 # Target executable name

@@ -6,20 +6,16 @@ int main() {
     // matrix_t* data = read_csv("test.csv", 0, true);
     // print_matrix(data[0]);
     // print_matrix(data[1]);
-    matrix_t a = zeroes(5, 5);
-    for (int i = 0; i < 5; i++) {
-        for (int j = 0; j < 5; j++) {
-            a.values[i][j] = (float)i == j;
-        }
-    }
+    determine_cache();
+    matrix_t a = random_matrix(1000, 1000);
     print_matrix(a);
 
-    matrix_t b = random_matrix(5, 5);
+    matrix_t b = random_matrix(1000, 1000);
     print_matrix(b);
-    matrix_t c = multiply(a, b);
+    matrix_t c = matrix_tile_multiply(a, b);
     print_matrix(c);
-    free_matrix(c);
-    free_matrix(b);
     free_matrix(a);
+    free_matrix(b);
+    free_matrix(c);
     printf("test\n");
 }

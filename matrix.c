@@ -2,11 +2,14 @@
 
 #include <assert.h>
 #include <immintrin.h>
+#include <math.h>
 #include <pthread.h>
 #include <stdio.h>
 #include <time.h>
 
-#define TILE_SIZE 8
+#define TILE_SIZE 330
+
+static size_t tile_size = TILE_SIZE;
 
 // Structure to pass arguments to the thread function
 typedef struct {
@@ -31,7 +34,7 @@ matrix_t zeroes(const size_t m, const size_t n) {
     matrix_t matrix;
     matrix.m = m;
     matrix.n = n;
-    matrix.values = (float*) calloc(m * n, sizeof(float));
+    matrix.values = (float *)calloc(m * n, sizeof(float));
     assert(matrix.values != NULL);
 
     return matrix;
@@ -44,20 +47,35 @@ matrix_t random_matrix(const size_t m, const size_t n) {
     matrix_t matrix;
     matrix.m = m;
     matrix.n = n;
-    matrix.values = (float*) malloc(m * n * sizeof(float));
+    matrix.values = (float *)malloc(m * n * sizeof(float));
     assert(matrix.values != NULL);
 
     for (size_t i = 0; i < m; i++) {
         for (size_t j = 0; j < n; j++) {
-            matrix.values[i * n + j] = (float) rand() / (float) RAND_MAX;
+            matrix.values[i * n + j] = (float)rand() / (float)RAND_MAX;
         }
     }
     return matrix;
 }
 
+inline void free_matrix(matrix_t matrix) { free(matrix.values); }
 // Private helper function
-static inline float float_abs(float num) { 
-    return (num < 0) ? -num : num; 
+static inline float float_abs(float num) { return (num < 0) ? -num : num; }
+
+void determine_cache(void) {
+    size_t cache_size = 0;
+    FILE *fp = fopen("/sys/devices/system/cpu/cpu0/cache/index2/size", "r");
+    if (fp) {
+        char buffer[16];
+        if (fgets(buffer, sizeof(buffer), fp)) {
+            cache_size = strtoul(buffer, NULL, 10) * 1024;
+        }
+        fclose(fp);
+    } else {
+        perror("fopen");
+        exit(1);
+    }
+    tile_size = (int)sqrt((cache_size / sizeof(float)) / 3);
 }
 
 // Normalises a matrix to have values between -1 and 1
@@ -97,7 +115,8 @@ matrix_t transpose(matrix_t original) {
 
     for (size_t i = 0; i < original.m; i++) {
         for (size_t j = 0; j < original.n; j++) {
-            transposed.values[j * transposed.n + i] = original.values[i * original.n + j];
+            transposed.values[j * transposed.n + i] =
+                original.values[i * original.n + j];
         }
     }
     return transposed;
@@ -105,7 +124,7 @@ matrix_t transpose(matrix_t original) {
 
 // Function to compute the product of a tile using AVX
 static void *compute_tile(void *arg) {
-    thread_args_t *args = (thread_args_t *) arg;
+    thread_args_t *args = (thread_args_t *)arg;
     matrix_t *a = args->a;
     matrix_t *b = args->b;
     matrix_t *c = args->c;
@@ -113,15 +132,17 @@ static void *compute_tile(void *arg) {
     size_t start_col = args->start_col;
 
     // Compute the product of the tile
-    for (size_t i = start_row; i < start_row + TILE_SIZE && i < a->m; i++) {
-        for (size_t j = start_col; j < start_col + TILE_SIZE && j < b->n; j++) {
-            __m256 sum_vec = _mm256_setzero_ps(); // Initialize AVX vector for accumulation
+    for (size_t i = start_row; i < start_row + tile_size && i < a->m; i++) {
+        for (size_t j = start_col; j < start_col + tile_size && j < b->n; j++) {
+            __m256 sum_vec =
+                _mm256_setzero_ps();  // Initialize AVX vector for accumulation
             float sum = 0.0f;
 
             // Process 8 elements at a time using AVX
             size_t k = 0;
             for (; k <= a->n - 8; k += 8) {
-                __m256 a_vec = _mm256_loadu_ps(&a->values[i * a->n + k]); // Load 8 elements from matrix A
+                __m256 a_vec = _mm256_loadu_ps(
+                    &a->values[i * a->n + k]);  // Load 8 elements from matrix A
                 __m256 b_vec = _mm256_set_ps(
                     b->values[(k + 7) * b->n + j],
                     b->values[(k + 6) * b->n + j],
@@ -130,9 +151,12 @@ static void *compute_tile(void *arg) {
                     b->values[(k + 3) * b->n + j],
                     b->values[(k + 2) * b->n + j],
                     b->values[(k + 1) * b->n + j],
-                    b->values[k * b->n + j]
-                ); // Load 8 elements from matrix B
-                sum_vec = _mm256_add_ps(sum_vec, _mm256_mul_ps(a_vec, b_vec)); // Multiply and accumulate
+                    b->values[k * b->n + j]);  // Load 8 elements from matrix B
+                sum_vec = _mm256_add_ps(
+                    sum_vec,
+                    _mm256_mul_ps(
+                        a_vec, b_vec));  //_mm256_fmadd_ps(a_vec, b_vec,
+                                         // sum_vec); // Multiply and accumulate
             }
 
             // Sum the elements of the AVX vector
@@ -147,7 +171,7 @@ static void *compute_tile(void *arg) {
                 sum += a->values[i * a->n + k] * b->values[k * b->n + j];
             }
 
-            c->values[i * c->n + j] = sum; // Store the result
+            c->values[i * c->n + j] = sum;  // Store the result
         }
     }
 
@@ -162,12 +186,12 @@ matrix_t matrix_tile_multiply(matrix_t a, matrix_t b) {
     matrix_t c;
     c.m = a.m;
     c.n = b.n;
-    c.values = (float *) malloc(c.m * c.n * sizeof(float));
+    c.values = (float *)malloc(c.m * c.n * sizeof(float));
     assert(c.values != NULL);
 
     // Calculate the number of tiles
-    size_t num_tiles_row = (a.m + TILE_SIZE - 1) / TILE_SIZE;
-    size_t num_tiles_col = (b.n + TILE_SIZE - 1) / TILE_SIZE;
+    size_t num_tiles_row = (a.m + tile_size - 1) / tile_size;
+    size_t num_tiles_col = (b.n + tile_size - 1) / tile_size;
 
     // Create threads for each tile
     pthread_t threads[num_tiles_row * num_tiles_col];
@@ -180,11 +204,13 @@ matrix_t matrix_tile_multiply(matrix_t a, matrix_t b) {
             args[i * num_tiles_col + j].a = &a;
             args[i * num_tiles_col + j].b = &b;
             args[i * num_tiles_col + j].c = &c;
-            args[i * num_tiles_col + j].start_row = i * TILE_SIZE;
-            args[i * num_tiles_col + j].start_col = j * TILE_SIZE;
+            args[i * num_tiles_col + j].start_row = i * tile_size;
+            args[i * num_tiles_col + j].start_col = j * tile_size;
 
             // Create the thread
-            if (pthread_create(&threads[i * num_tiles_col + j], NULL, compute_tile, &args[i * num_tiles_col + j]) != 0) {
+            if (pthread_create(&threads[i * num_tiles_col + j], NULL,
+                               compute_tile,
+                               &args[i * num_tiles_col + j]) != 0) {
                 printf("Error: Failed to create thread\n");
                 exit(1);
             }
@@ -215,11 +241,11 @@ static void* multiply_row(void* arg) {
             for (; k <= a->n - 8; k += 8) {
                 __m256 a_vec = _mm256_load_ps(&a->values[row * a->n + k]);
                 __m256 b_vec =
-                    _mm256_set_ps(b->values[(k + 7) * b->n + j], b->values[(k + 6) * b->n + j],
-                                  b->values[(k + 5) * b->n + j], b->values[(k + 4) * b->n + j],
-                                  b->values[(k + 3) * b->n + j], b->values[(k + 2) * b->n + j],
-                                  b->values[(k + 1) * b->n + j], b->values[k * b->n + j]);
-                mul = _mm256_add_ps(_mm256_mul_ps(a_vec, b_vec), mul);
+                    _mm256_set_ps(b->values[(k + 7) * b->n + j], b->values[(k +
+6) * b->n + j], b->values[(k + 5) * b->n + j], b->values[(k + 4) * b->n + j],
+                                  b->values[(k + 3) * b->n + j], b->values[(k +
+2) * b->n + j], b->values[(k + 1) * b->n + j], b->values[k * b->n + j]); mul =
+_mm256_add_ps(_mm256_mul_ps(a_vec, b_vec), mul);
             }
             float array_mul[8];
             _mm256_storeu_ps(array_mul, mul);
@@ -248,7 +274,8 @@ matrix_t multiply(matrix_t a, matrix_t b) {
         thread_data[i].b = &b;
         thread_data[i].c = &c;
         thread_data[i].row = i;
-        pthread_create(&threads[i], NULL, multiply_row, (void*) &thread_data[i]);
+        pthread_create(&threads[i], NULL, multiply_row, (void*)
+&thread_data[i]);
     }
     for (size_t i = 0; i < c.m; i++) {
         pthread_join(threads[i], NULL);
