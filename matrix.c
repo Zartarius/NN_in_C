@@ -152,10 +152,7 @@ static void *compute_tile(void *arg) {
                     b->values[(k + 2) * b->n + j],
                     b->values[(k + 1) * b->n + j],
                     b->values[k * b->n + j]);  // Load 8 elements from matrix B
-                sum_vec = _mm256_add_ps(
-                    sum_vec,
-                    _mm256_mul_ps(
-                        a_vec, b_vec));  //_mm256_fmadd_ps(a_vec, b_vec,
+                sum_vec = _mm256_fmadd_ps(a_vec, b_vec, sum_vec); //_mm256_fmadd_ps(a_vec, b_vec,
                                          // sum_vec); // Multiply and accumulate
             }
 
