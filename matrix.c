@@ -152,6 +152,7 @@ static void *compute_tile(void *arg) {
 
 // Function to multiply two matrices using tiles, threads, and AVX
 matrix_t matrix_tile_multiply(matrix_t a, matrix_t b) {
+    printf("%zu %zu |  %zu %zu\n", a.n, a.m, b.n, b.m);
     assert(a.n == b.m);
 
     // Create the result matrix

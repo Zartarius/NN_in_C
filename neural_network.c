@@ -1,5 +1,7 @@
 #include "neural_network.h"
 
+#include "activation.h"
+
 #include <assert.h>
 #include <math.h>
 #include <stdio.h>
@@ -17,7 +19,6 @@ size_t tile_size = TILE_SIZE;
 
 static layer_t* layers;
 static size_t num_layers = 0;
-static float (*activation_func)(float input);
 
 void create_network(size_t* layer_info, const size_t size_layer_info) {
     assert(size_layer_info >=
@@ -52,14 +53,15 @@ void create_network(size_t* layer_info, const size_t size_layer_info) {
 
 result_t predict(matrix_t X) {
     matrix_t input = X;
-
     for (size_t i = 1; i < num_layers; i++) {
         matrix_t output = matrix_tile_multiply(input, layers[i].weights);
         matrix_t bias = layers[i].biases;
         for (size_t j = 0; j < output.n; j++) {
-            output.values[j] =
-                activation_func(output.values[i] + bias.values[0]);
+            output.values[j] = output.values[j] + bias.values[j];
         }
+        matrix_t activation = matrix_activation(output, SIGMOID);
+        free_matrix(output);
+        input = activation;
     }
 }
 
