@@ -18,7 +18,7 @@ size_t tile_size = TILE_SIZE;
 
 static layer_t* layers;
 static size_t num_layers = 0;
-static float (*activation_func)(float input);
+static activation_func_t activation = 0;
 
 void create_network(size_t* layer_info, const size_t size_layer_info) {
     assert(size_layer_info >=
