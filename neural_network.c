@@ -34,15 +34,12 @@ void create_network(size_t* layer_info, const size_t size_layer_info) {
         // Create Biases - 1 column
         layers[i].biases = zeroes(1, layer_info[i]);
 
-        double stddev = sqrt(
-            2.0 /
-            layer_info[i - 1]);  // Standard deviation for the initialization
+        double stddev = sqrt(2.0 / layer_info[i - 1]);  // Standard deviation for the initialization
+        
         for (size_t j = 0; j < layer_info[i - 1]; j++) {
             for (size_t k = 0; k < layer_info[i]; k++) {
-                layers[i].weights.values[j * layer_info[i] + k] =
-                    ((float)rand() / RAND_MAX) * 2 * stddev - stddev;
-                layers[i].biases.values[k] =
-                    ((float)rand() / RAND_MAX) * 2 * stddev - stddev;
+                layers[i].weights.values[j * layer_info[i] + k] = ((float) rand() / RAND_MAX) * 2 * stddev - stddev;
+                // layers[i].biases.values[k] = ((float) rand() / RAND_MAX) * 2 * stddev - stddev;
             }
         }
     }
@@ -55,8 +52,7 @@ result_t predict(matrix_t X) {
         matrix_t output = matrix_tile_multiply(input, layers[i].weights);
         matrix_t bias = layers[i].biases;
         for (size_t j = 0; j < output.n; j++) {
-            output.values[j] =
-                activation_func(output.values[i] + bias.values[0]);
+            output.values[j] = activation_func(output.values[i] + bias.values[0]);
         }
     }
 }
@@ -74,5 +70,5 @@ void determine_cache(void) {
         perror("fopen");
         exit(1);
     }
-    tile_size = (int)sqrt((cache_size / sizeof(float)) / 3);
+    tile_size = (int) sqrt((cache_size / sizeof(float)) / 3);
 }
