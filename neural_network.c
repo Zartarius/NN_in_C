@@ -1,8 +1,6 @@
 #include "neural_network.h"
 #include "activation.h"
 
-#include "activation.h"
-
 #include <assert.h>
 #include <math.h>
 #include <stdio.h>
@@ -12,7 +10,7 @@
 
 // Private struct for representing a single NN layer
 typedef struct {
-    matrix_t weights;  // .n == number of neurons in layer
+    matrix_t weights;  
     matrix_t biases;
 } layer_t;
 
@@ -23,28 +21,38 @@ static size_t num_layers = 0;
 static activation_func_t activation = 0;
 
 void create_network(size_t* layer_info, const size_t size_layer_info) {
-    assert(size_layer_info >=
-           2);  // Ensure there are at least input and output layers
+    assert(size_layer_info >= 2);  // Ensure there are at least input and output layers
 
     num_layers = size_layer_info;
-    layers = (layer_t*)malloc(num_layers *
-                              sizeof(layer_t));  // Allocate memory for layers
+    layers = (layer_t*) malloc((num_layers - 1) * sizeof(layer_t));  // Allocate memory for layers
 
     for (size_t i = 1; i < num_layers; i++) {
-        // Create weights matrix
-        layers[i].weights = zeroes(layer_info[i - 1], layer_info[i]);
         // Create Biases - 1 column
         layers[i].biases = zeroes(1, layer_info[i]);
+        // Create weights matrix
+        layers[i].weights = zeroes(layer_info[i - 1], layer_info[i]);
 
-        double stddev = sqrt(2.0 / layer_info[i - 1]);  // Standard deviation for the initialization
+        float stddev = sqrt(2.0 / layer_info[i - 1]);  // Standard deviation for the initialization
         
         for (size_t j = 0; j < layer_info[i - 1]; j++) {
             for (size_t k = 0; k < layer_info[i]; k++) {
-                layers[i].weights.values[j * layer_info[i] + k] = ((float) rand() / RAND_MAX) * 2 * stddev - stddev;
+                layers[i].weights.values[j * layer_info[i] + k] = ((float) rand() / RAND_MAX) * 2.0 * stddev - stddev;
                 // layers[i].biases.values[k] = ((float) rand() / RAND_MAX) * 2 * stddev - stddev;
             }
         }
     }
+}
+
+static size_t argmax(float* distribution, size_t num_classes) {
+    size_t result = 0;
+    float max_prob = distribution[0];
+    for (size_t i = 0; i < num_classes; i++) {
+        if (distribution[i] > max_prob) {
+            max_prob = distribution[i];
+            result = i;
+        }
+    }
+    return result;
 }
 
 result_t predict(matrix_t X) {
@@ -53,11 +61,15 @@ result_t predict(matrix_t X) {
         matrix_t output = matrix_tile_multiply(input, layers[i].weights);
         matrix_t bias = layers[i].biases;
         for (size_t j = 0; j < output.n; j++) {
-            output.values[j] = output.values[j] + bias.values[j];
+            output.values[j] += bias.values[j];
         }
-        matrix_t activation = matrix_activation(output, SIGMOID);
-        free_matrix(output);
-        input = activation;
+
+        if (i == num_layers - 1) {
+            input = output;
+        } else {
+            input = matrix_activation(output, LEAKY_RELU);
+            free_matrix(output);
+        }
     }
 }
 
