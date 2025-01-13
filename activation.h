@@ -4,6 +4,15 @@
 #include "matrix.h"
 #include "neural_network.h"
 
+typedef enum {
+    STEP,
+    SIGMOID,
+    SOFTSIGN,
+    RELU,
+    TANH,
+    LEAKY_RELU
+} activation_func_t;
+
 matrix_t matrix_activation(matrix_t a, activation_func_t activation);
 
 #endif
