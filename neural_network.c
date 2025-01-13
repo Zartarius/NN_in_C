@@ -66,7 +66,7 @@ result_t predict(matrix_t X) {
 void determine_cache(void) {
     size_t cache_size = 0;
     FILE* fp = fopen("/sys/devices/system/cpu/cpu0/cache/index2/size", "r");
-    if (fp) {
+    if (fp != NULL) {
         char buffer[16];
         if (fgets(buffer, sizeof(buffer), fp)) {
             cache_size = strtoul(buffer, NULL, 10) * 1024;
