@@ -1,4 +1,6 @@
 #include "matrix.h"
+#include "neural_network.h"
+#include "activation.h"
 #include "parse_csv.h"
 // #include <stdio.h>
 

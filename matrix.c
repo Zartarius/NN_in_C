@@ -7,9 +7,7 @@
 #include <stdio.h>
 #include <time.h>
 
-#define TILE_SIZE 330
-
-static size_t tile_size = TILE_SIZE;
+extern size_t tile_size;
 
 // Structure to pass arguments to the thread function
 typedef struct {
@@ -58,25 +56,9 @@ matrix_t random_matrix(const size_t m, const size_t n) {
     return matrix;
 }
 
-inline void free_matrix(matrix_t matrix) { free(matrix.values); }
+extern inline void free_matrix(matrix_t matrix) { free(matrix.values); }
 // Private helper function
 static inline float float_abs(float num) { return (num < 0) ? -num : num; }
-
-void determine_cache(void) {
-    size_t cache_size = 0;
-    FILE *fp = fopen("/sys/devices/system/cpu/cpu0/cache/index2/size", "r");
-    if (fp) {
-        char buffer[16];
-        if (fgets(buffer, sizeof(buffer), fp)) {
-            cache_size = strtoul(buffer, NULL, 10) * 1024;
-        }
-        fclose(fp);
-    } else {
-        perror("fopen");
-        exit(1);
-    }
-    tile_size = (int)sqrt((cache_size / sizeof(float)) / 3);
-}
 
 // Normalises a matrix to have values between -1 and 1
 void normalise(matrix_t matrix) {
@@ -152,8 +134,10 @@ static void *compute_tile(void *arg) {
                     b->values[(k + 2) * b->n + j],
                     b->values[(k + 1) * b->n + j],
                     b->values[k * b->n + j]);  // Load 8 elements from matrix B
-                sum_vec = _mm256_fmadd_ps(a_vec, b_vec, sum_vec); //_mm256_fmadd_ps(a_vec, b_vec,
-                                         // sum_vec); // Multiply and accumulate
+                sum_vec = _mm256_fmadd_ps(
+                    a_vec, b_vec,
+                    sum_vec);  //_mm256_fmadd_ps(a_vec, b_vec,
+                               // sum_vec); // Multiply and accumulate
             }
 
             // Sum the elements of the AVX vector
@@ -208,7 +192,7 @@ matrix_t matrix_tile_multiply(matrix_t a, matrix_t b) {
             if (pthread_create(&threads[i * num_tiles_col + j], NULL,
                                compute_tile,
                                &args[i * num_tiles_col + j]) != 0) {
-                printf("Error: Failed to create thread\n");
+                perror("pthread_create");
                 exit(1);
             }
         }

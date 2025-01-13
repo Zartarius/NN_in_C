@@ -3,6 +3,7 @@
 
 #include <assert.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include <math.h>
 
 // Private struct for representing a single NN layer
@@ -13,6 +14,10 @@ typedef struct {
 
 static layer_t* layers;
 static size_t num_layers = 0;
+
+#define TILE_SIZE 8
+
+size_t tile_size = TILE_SIZE;
 
 void init_layers(size_t* layer_info, const size_t size_layer_info) {
     assert(size_layer_info >= 2); // Ensure there are at least input and output layers
@@ -41,4 +46,20 @@ void init_layers(size_t* layer_info, const size_t size_layer_info) {
         }
         */
     }
+}
+
+void determine_cache(void) {
+    size_t cache_size = 0;
+    FILE *fp = fopen("/sys/devices/system/cpu/cpu0/cache/index2/size", "r");
+    if (fp) {
+        char buffer[16];
+        if (fgets(buffer, sizeof(buffer), fp)) {
+            cache_size = strtoul(buffer, NULL, 10) * 1024;
+        }
+        fclose(fp);
+    } else {
+        perror("fopen");
+        exit(1);
+    }
+    tile_size = (int)sqrt((cache_size / sizeof(float)) / 3);
 }
