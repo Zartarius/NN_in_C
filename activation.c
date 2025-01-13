@@ -140,8 +140,10 @@ matrix_t matrix_activation(matrix_t a, activation_func_t activation) {
     size_t num_tiles_row = (a.m + tile_size - 1) / tile_size;
     size_t num_tiles_col = (a.n + tile_size - 1) / tile_size;
 
-    pthread_t threads[num_tiles_row * num_tiles_col];
-    thread_args_t args[num_tiles_row * num_tiles_col];
+    size_t num_tiles_row_col = num_tiles_row * num_tiles_col;
+
+    pthread_t threads[num_tiles_row_col];
+    thread_args_t args[num_tiles_row_col];
 
     for (size_t i = 0; i < num_tiles_row; i++) {
         for (size_t j = 0; j < num_tiles_col; j++) {
@@ -158,7 +160,8 @@ matrix_t matrix_activation(matrix_t a, activation_func_t activation) {
         }
     }
 
-    for (size_t i = 0; i < num_tiles_row * num_tiles_col; i++) {
+    
+    for (size_t i = 0; i < num_tiles_row_col; i++) {
         assert(pthread_join(threads[i], NULL) == 0);
     }
 
