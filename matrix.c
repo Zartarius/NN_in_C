@@ -18,15 +18,6 @@ typedef struct {
     size_t start_col;
 } thread_args_t;
 
-/*
-typedef struct {
-    matrix_t* a;
-    matrix_t* b;
-    matrix_t* c;
-    size_t row;  // Row index for the result matrix
-} thread_data_t;
-*/
-
 // Returns an m x n matrix, initialised to zero
 matrix_t zeroes(const size_t m, const size_t n) {
     matrix_t matrix;
@@ -205,68 +196,6 @@ matrix_t matrix_tile_multiply(matrix_t a, matrix_t b) {
 
     return c;
 }
-
-/*
-static void* multiply_row(void* arg) {
-    thread_data_t* data = (thread_data_t*)arg;
-    matrix_t* a = data->a;
-    matrix_t* b = data->b;
-    matrix_t* c = data->c;
-    size_t row = data->row;
-
-    for (size_t j = 0; j < b->n; j++) {
-        __m256 mul = _mm256_setzero_ps();
-        float sum = 0;
-        size_t k = 0;
-        if (a->n > 8) {
-            for (; k <= a->n - 8; k += 8) {
-                __m256 a_vec = _mm256_load_ps(&a->values[row * a->n + k]);
-                __m256 b_vec =
-                    _mm256_set_ps(b->values[(k + 7) * b->n + j], b->values[(k +
-6) * b->n + j], b->values[(k + 5) * b->n + j], b->values[(k + 4) * b->n + j],
-                                  b->values[(k + 3) * b->n + j], b->values[(k +
-2) * b->n + j], b->values[(k + 1) * b->n + j], b->values[k * b->n + j]); mul =
-_mm256_add_ps(_mm256_mul_ps(a_vec, b_vec), mul);
-            }
-            float array_mul[8];
-            _mm256_storeu_ps(array_mul, mul);
-            sum += array_mul[0] + array_mul[1] + array_mul[2] + array_mul[3] +
-                   array_mul[4] + array_mul[5] + array_mul[6] + array_mul[7];
-            // for remaining
-        }
-        for (; k < a->n; k++) {
-            sum += a->values[row * a->n + k] * b->values[k * b->n + j];
-        }
-        c->values[row * c->n + j] = sum;
-    }
-    return NULL;
-}
-
-matrix_t multiply(matrix_t a, matrix_t b) {
-    assert(a.n == b.m);
-
-    matrix_t c = zeroes(a.m, b.n);
-
-    pthread_t* threads = malloc(c.m * sizeof(pthread_t));
-    thread_data_t* thread_data = malloc(c.m * sizeof(thread_data_t));
-
-    for (size_t i = 0; i < c.m; i++) {
-        thread_data[i].a = &a;
-        thread_data[i].b = &b;
-        thread_data[i].c = &c;
-        thread_data[i].row = i;
-        pthread_create(&threads[i], NULL, multiply_row, (void*)
-&thread_data[i]);
-    }
-    for (size_t i = 0; i < c.m; i++) {
-        pthread_join(threads[i], NULL);
-    }
-
-    free(threads);
-    free(thread_data);
-    return c;
-}
-*/
 
 void print_matrix(matrix_t matrix) {
     printf("\n");
