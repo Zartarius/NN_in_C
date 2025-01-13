@@ -1,4 +1,5 @@
 #include "neural_network.h"
+#include "activation.h"
 
 #include "activation.h"
 
@@ -19,6 +20,7 @@ size_t tile_size = TILE_SIZE;
 
 static layer_t* layers;
 static size_t num_layers = 0;
+static activation_func_t activation = 0;
 
 void create_network(size_t* layer_info, const size_t size_layer_info) {
     assert(size_layer_info >=
@@ -29,23 +31,17 @@ void create_network(size_t* layer_info, const size_t size_layer_info) {
                               sizeof(layer_t));  // Allocate memory for layers
 
     for (size_t i = 1; i < num_layers; i++) {
-        // Initialize biases to zero
-
-        size_t prev_layer_neurons = layer_info[i - 1];
         // Create weights matrix
         layers[i].weights = zeroes(layer_info[i - 1], layer_info[i]);
         // Create Biases - 1 column
         layers[i].biases = zeroes(1, layer_info[i]);
 
-        double stddev = sqrt(
-            2.0 /
-            prev_layer_neurons);  // Standard deviation for the initialization
-        for (size_t j = 0; j < prev_layer_neurons; j++) {
+        double stddev = sqrt(2.0 / layer_info[i - 1]);  // Standard deviation for the initialization
+        
+        for (size_t j = 0; j < layer_info[i - 1]; j++) {
             for (size_t k = 0; k < layer_info[i]; k++) {
-                layers[i].weights.values[j * layer_info[i] + k] =
-                    ((float)rand() / RAND_MAX) * 2 * stddev - stddev;
-                layers[i].biases.values[k] =
-                    ((float)rand() / RAND_MAX) * 2 * stddev - stddev;
+                layers[i].weights.values[j * layer_info[i] + k] = ((float) rand() / RAND_MAX) * 2 * stddev - stddev;
+                // layers[i].biases.values[k] = ((float) rand() / RAND_MAX) * 2 * stddev - stddev;
             }
         }
     }
@@ -78,5 +74,5 @@ void determine_cache(void) {
         perror("fopen");
         exit(1);
     }
-    tile_size = (int)sqrt((cache_size / sizeof(float)) / 3);
+    tile_size = (int) sqrt((cache_size / sizeof(float)) / 3);
 }
