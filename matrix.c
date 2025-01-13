@@ -41,15 +41,19 @@ matrix_t random_matrix(const size_t m, const size_t n) {
 
     for (size_t i = 0; i < m; i++) {
         for (size_t j = 0; j < n; j++) {
-            matrix.values[i * n + j] = (float)rand() / (float)RAND_MAX;
+            matrix.values[i * n + j] = (float) rand() / (float) RAND_MAX;
         }
     }
     return matrix;
 }
 
-extern inline void free_matrix(matrix_t matrix) { free(matrix.values); }
+extern inline void free_matrix(matrix_t matrix) {
+    free(matrix.values); 
+}
 // Private helper function
-static inline float float_abs(float num) { return (num < 0) ? -num : num; }
+static inline float float_abs(float num) { 
+    return (num < 0) ? -num : num; 
+}
 
 // Normalises a matrix to have values between -1 and 1
 void normalise(matrix_t matrix) {
