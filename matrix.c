@@ -9,7 +9,10 @@
 
 extern size_t tile_size;
 
-// Structure to pass arguments to the thread function
+// Structure to pass arguments to the thread function.
+// Struct originally designed for use in 1 function,
+// but now we are using it in multiple, with some struct
+// fields being redundant in some functions.
 typedef struct {
     matrix_t *a;
     matrix_t *b;
@@ -47,7 +50,7 @@ matrix_t random_matrix(const size_t m, const size_t n) {
     return matrix;
 }
 
-void free_matrix(matrix_t matrix) {
+extern inline void free_matrix(matrix_t matrix) {
     free(matrix.values); 
 }
 // Private helper function
@@ -75,14 +78,39 @@ void normalise(matrix_t matrix) {
     }
 }
 
-// Add a vector row-wise to a matrix
+static void* parallel_row_adder(void* arg) {
+    thread_args_t args = *(thread_args_t*) arg;
+    float* matrix_values = args.a->values;
+    float* vector_values = args.b->values;
+    size_t n = args.a->n; // Equivalent to args.b->n
+    size_t starting_cell = args.start_row * n; // The row to apply the addition on
+
+    for (size_t i = 0; i < n; i++) {
+        matrix_values[starting_cell + i] += vector_values[i];
+    }
+    
+    return NULL;
+}
+
+// Add a vector row-wise to a matrix, to each row
 void matrix_add_vector(matrix_t matrix, matrix_t vector) {
     assert((matrix.n == vector.n) && vector.m == 1);
 
+    pthread_t threads[matrix.m];
+    thread_args_t args[matrix.m];
+
     for (size_t i = 0; i < matrix.m; i++) {
-        for (size_t j = 0; j < matrix.n; j++) {
-            matrix.values[i * matrix.n + j] += vector.values[j];
-        }
+        args[i].a = &matrix;
+        args[i].b = &vector;
+        args[i].c = NULL; // We only need 2 matrices of course
+        args[i].start_row = i;
+        args[i].start_col = -1; // We don't need this
+
+        pthread_create(&threads[i], NULL, parallel_row_adder, (void*) &args[i]);
+    }
+
+    for (size_t i = 0; i < matrix.m; i++) {
+        pthread_join(threads[i], NULL);
     }
 }
 
@@ -156,7 +184,7 @@ static void *compute_tile(void *arg) {
 
 // Function to multiply two matrices using tiles, threads, and AVX
 matrix_t matrix_tile_multiply(matrix_t a, matrix_t b) {
-    printf("%zu %zu |  %zu %zu\n", a.n, a.m, b.n, b.m);
+    // printf("%zu %zu |  %zu %zu\n", a.n, a.m, b.n, b.m);
     assert(a.n == b.m);
 
     // Create the result matrix
