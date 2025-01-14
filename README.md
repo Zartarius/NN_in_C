@@ -14,4 +14,6 @@ Implementation of a basic, but optimised classification Neural Network in C from
 
 `neural_network.h` - Provides the actual interface for the neural network, allowing the user to pass in the testing and training data, and customising the number of layers, neurons, activation function etc. 
 
-`activation.h` - Contains all the possible activation functions, as well as a function to implement them on a matrix.
+`train/activation.h` - Contains all the possible activation functions with their derivatives, as well as a function to implement them on a matrix.
+
+`train/loss.h` - Contains all the possible loss functions, including their derivatives.
