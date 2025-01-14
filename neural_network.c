@@ -81,8 +81,7 @@ result_t* predict(matrix_t X) {
     matrix_t input = X;
     for (size_t i = 0; i < num_layers - 1; i++) {
         matrix_t output = matrix_tile_multiply(input, layers[i].weights);
-        matrix_t bias = layers[i].biases;
-        matrix_add_vector(output, bias);
+        matrix_add_vector(output, layers[i].biases);
 
         if (i == num_layers - 1) {
             input = output;  // In this case, 'input' is the raw values from the
