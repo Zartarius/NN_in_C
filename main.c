@@ -6,7 +6,7 @@
 
 int main() {
     // print_matrix(data[1]);
-    determine_cache();
+    determine_cache(); // COMMENT THIS OUT IF YOU ARE A MAC USER
     size_t layer_info[] = {16, 250, 150, 2};
     size_t num_layers = sizeof(layer_info) / sizeof(size_t);
     
