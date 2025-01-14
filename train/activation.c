@@ -45,7 +45,7 @@ static void *matrix_activation_softsign(void *arg) {
          i < args->start_row + tile_size && i < a->m; i++) {
         for (size_t j = args->start_col;
              j < args->start_col + tile_size && j < a->n; j++) {
-            double val = a->values[i * a->n + j];
+            float val = a->values[i * a->n + j];
             b->values[i * a->n + j] = val / (1.0 + fabs(val));
         }
     }
@@ -105,7 +105,7 @@ static void *matrix_activation_leaky_relu(void *arg) {
          i < args->start_row + tile_size && i < a->m; i++) {
         for (size_t j = args->start_col;
              j < args->start_col + tile_size && j < a->n; j++) {
-            double val = a->values[i * a->n + j];
+            float val = a->values[i * a->n + j];
             b->values[i * a->n + j] = (val > 0) ? val : LEAKY_RELU_ALPHA * val;
         }
     }

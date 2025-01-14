@@ -1,8 +1,7 @@
 #ifndef ACTIVATION_H
 #define ACTIVATION_H
 
-#include "matrix.h"
-#include "neural_network.h"
+#include "../matrix.h"
 
 typedef enum {
     STEP,

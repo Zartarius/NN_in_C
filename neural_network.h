@@ -8,5 +8,5 @@ typedef struct {
 } result_t;
 
 void create_network(size_t* layer_info, const size_t size_layer_info);
-result_t predict(matrix_t X);
+result_t *predict(matrix_t X);
 #endif

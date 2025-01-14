@@ -1,5 +1,5 @@
 #include "neural_network.h"
-#include "activation.h"
+#include "train/activation.h"
 
 #include <assert.h>
 #include <math.h>
