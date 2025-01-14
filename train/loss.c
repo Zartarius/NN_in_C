@@ -3,6 +3,8 @@
 #include <math.h>
 #include <pthread.h>
 #include <stdlib.h>
+#include <assert.h>
+#include <stdio.h>
 
 extern size_t tile_size;
 
@@ -12,6 +14,12 @@ typedef struct {
     size_t start_row;
     size_t start_col;
 } thread_args_t;
+
+static void *matrix_loss_mse(void *arg);
+static void *matrix_loss_mae(void *arg);
+static void *matrix_loss_hubler(void *arg);
+static void *matrix_loss_log(void *arg);
+static void *matrix_loss_categorical(void *arg);
 
 static void *matrix_loss_mse(void *arg) {
     thread_args_t *args = (thread_args_t *)arg;
@@ -121,7 +129,7 @@ float matrix_loss(matrix_t Y, matrix_t actual, loss_func_t loss) {
             loss_function = matrix_loss_log;
             break;
         case CATEGORICAL:
-            loss_function = CATEGORICAL;
+            loss_function = matrix_loss_categorical;
             break;
     }
 

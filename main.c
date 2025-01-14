@@ -1,4 +1,4 @@
-#include "activation.h"
+#include "train/activation.h"
 #include "matrix.h"
 #include "neural_network.h"
 #include "parse_csv.h"

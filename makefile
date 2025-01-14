@@ -6,9 +6,9 @@ LDFLAGS = -fsanitize=address,undefined
 # Target executable name
 TARGET = build/program
 
-# Automatically gather source and object files
-SRCS = $(wildcard *.c)
-OBJS = $(patsubst %.c, build/%.o, $(SRCS))
+# Automatically gather source and object files from all directories
+SRCS = $(shell find . -name '*.c')
+OBJS = $(patsubst ./%.c, build/%.o, $(SRCS))
 
 # Default rule
 all: $(TARGET)
@@ -17,9 +17,9 @@ all: $(TARGET)
 $(TARGET): $(OBJS)
 	$(CC) $(OBJS) -o $(TARGET) $(LDFLAGS)
 
-# Compile .c files into build/*.o
+# Compile .c files into build/**/*.o
 build/%.o: %.c
-	@mkdir -p build
+	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -c $< -o $@
 
 # Clean rule to remove build artifacts

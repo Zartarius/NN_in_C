@@ -1,10 +1,10 @@
 #include "activation.h"
 
+#include <assert.h>
 #include <errno.h>
 #include <math.h>
 #include <pthread.h>
 #include <stdio.h>
-#include <assert.h>
 
 extern size_t tile_size;
 
@@ -32,6 +32,21 @@ static void *matrix_activation_sigmoid(void *arg) {
              j < args->start_col + tile_size && j < a->n; j++) {
             b->values[i * a->n + j] =
                 1.0 / (1.0 + exp(-a->values[i * a->n + j]));
+        }
+    }
+    return NULL;
+}
+
+static void *matrix_d_activation_sigmoid(void *arg) {
+    thread_args_t *args = (thread_args_t *)arg;
+    matrix_t *a = args->a;
+    matrix_t *b = args->b;
+    for (size_t i = args->start_row;
+         i < args->start_row + tile_size && i < a->m; i++) {
+        for (size_t j = args->start_col;
+             j < args->start_col + tile_size && j < a->n; j++) {
+            float value = exp(-a->values[i * a->n + j]);
+            b->values[i * a->n + j] = value / ((1.0 + value) * (1.0 + value));
         }
     }
     return NULL;
@@ -160,7 +175,6 @@ matrix_t matrix_activation(matrix_t a, activation_func_t activation) {
         }
     }
 
-    
     for (size_t i = 0; i < num_tiles_row_col; i++) {
         assert(pthread_join(threads[i], NULL) == 0);
     }
