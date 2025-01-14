@@ -1,5 +1,5 @@
 # Overview
-Implementation of a basic, but optimised classification Neural Network in C from scratch. The goal is to accurately classify handwritten digits from the MNIST dataset.
+Implementation of a basic, but optimised classification Neural Network in C from scratch. The goal is to accurately classify handwritten digits from the MNIST dataset. NOTE: A lot of this code is NOT portable, specificially the usage of SIMD.
 
 (Project currently in progress)
 
