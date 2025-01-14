@@ -79,7 +79,7 @@ static float* softmax_regression(matrix_t input, size_t row_number) {
 
 result_t* predict(matrix_t X) {
     matrix_t input = X;
-    for (size_t i = 1; i < num_layers; i++) {
+    for (size_t i = 0; i < num_layers - 1; i++) {
         matrix_t output = matrix_tile_multiply(input, layers[i].weights);
         matrix_t bias = layers[i].biases;
         matrix_add_vector(output, bias);
