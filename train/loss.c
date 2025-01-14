@@ -17,10 +17,20 @@ typedef struct {
 } thread_args_t;
 
 static void *matrix_loss_mse(void *arg);
+static void *matrix_d_loss_mse(void *arg);
+
 static void *matrix_loss_mae(void *arg);
+static void *matrix_d_loss_mae(void *arg);
+
 static void *matrix_loss_hubler(void *arg);
+static void *matrix_d_loss_hubler(void *arg);
+
 static void *matrix_loss_log(void *arg);
+static void *matrix_d_loss_log(void *arg);
+
 static void *matrix_loss_categorical(void *arg);
+static void *matrix_d_loss_categorical(void *arg);
+static void *matrix_d_loss_categorical_softmax(void *arg);
 
 static void *matrix_loss_mse(void *arg) {
     thread_args_t *args = (thread_args_t *)arg;
