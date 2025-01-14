@@ -18,25 +18,26 @@ size_t tile_size = TILE_SIZE;
 
 static layer_t* layers;
 static size_t num_layers = 0;
-static activation_func_t activation = 0;
+static activation_func_t activation = LEAKY_RELU;
 
 void create_network(size_t* layer_info, const size_t size_layer_info) {
     assert(size_layer_info >= 2);  // Ensure there are at least input and output layers
 
     num_layers = size_layer_info;
+    // Subtract one because we don't need to store the input layer
     layers = (layer_t*) malloc((num_layers - 1) * sizeof(layer_t));  // Allocate memory for layers
 
-    for (size_t i = 1; i < num_layers; i++) {
+    for (size_t i = 0; i < num_layers - 1; i++) {
         // Create Biases - 1 column
-        layers[i].biases = zeroes(1, layer_info[i]);
-        // Create weights matrix
-        layers[i].weights = zeroes(layer_info[i - 1], layer_info[i]);
+        layers[i].biases = zeroes(1, layer_info[i + 1]); // layer_info[0] is the input layer
 
-        float stddev = sqrt(2.0 / layer_info[i - 1]);  // Standard deviation for the initialization
-        
-        for (size_t j = 0; j < layer_info[i - 1]; j++) {
+        // Create weights matrix
+        layers[i].weights = zeroes(layer_info[i], layer_info[i + 1]);
+
+        float stddev = sqrt(2.0 / layer_info[i]);  // Standard deviation for the initialization
+        for (size_t j = 0; j < layer_info[i]; j++) {
             for (size_t k = 0; k < layer_info[i]; k++) {
-                layers[i].weights.values[j * layer_info[i] + k] = ((float) rand() / RAND_MAX) * 2.0 * stddev - stddev;
+                layers[i].weights.values[j * layer_info[i + 1] + k] = ((float) rand() / RAND_MAX) * 2.0 * stddev - stddev;
                 // layers[i].biases.values[k] = ((float) rand() / RAND_MAX) * 2 * stddev - stddev;
             }
         }
@@ -55,22 +56,40 @@ static size_t argmax(float* distribution, size_t num_classes) {
     return result;
 }
 
-result_t predict(matrix_t X) {
+static float* softmax_regression(matrix_t input, size_t row_number) {
+    float* distribution = malloc(input.n * sizeof(float));
+    float sum = 0.0;
+    for (size_t i = 0; i < input.n; i++) {
+        distribution[i] = exp(input.values[input.n * row_number + i]);
+        sum += distribution[i]; // Calculate the sum of the distribution, simultaneously
+    }
+    for (size_t i = 0; i < input.n; i++) {
+        distribution[i] /= sum; // Normalize the distribution
+    }
+    return distribution;
+}
+
+result_t* predict(matrix_t X) {
     matrix_t input = X;
     for (size_t i = 1; i < num_layers; i++) {
         matrix_t output = matrix_tile_multiply(input, layers[i].weights);
         matrix_t bias = layers[i].biases;
-        for (size_t j = 0; j < output.n; j++) {
-            output.values[j] += bias.values[j];
-        }
+        matrix_add_vector(output, bias);
 
         if (i == num_layers - 1) {
-            input = output;
+            input = output; // In this case, 'input' is the raw values from the final layer
         } else {
-            input = matrix_activation(output, LEAKY_RELU);
+            input = matrix_activation(output, activation);
             free_matrix(output);
         }
     }
+    result_t* predictions = (result_t*) malloc(input.m * sizeof(result_t));
+
+    for (size_t i = 0; i < input.m; i++) {
+        predictions[i].distribution = softmax_regression(input, i);
+        predictions[i].prediction = argmax(predictions[i].distribution, input.n);
+    }    
+    return predictions;
 }
 
 void determine_cache(void) {
