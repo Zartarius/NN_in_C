@@ -47,7 +47,7 @@ matrix_t random_matrix(const size_t m, const size_t n) {
     return matrix;
 }
 
-extern inline void free_matrix(matrix_t matrix) {
+void free_matrix(matrix_t matrix) {
     free(matrix.values); 
 }
 // Private helper function

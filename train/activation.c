@@ -16,11 +16,15 @@ typedef struct {
 } thread_args_t;
 
 static void *matrix_activation_sigmoid(void *arg);
+static void *matrix_d_activation_sigmoid(void *arg);
 static void *matrix_activation_softsign(void *arg);
-static void *matrix_activation_step(void *arg);
+static void *matrix_d_activation_softsign(void *arg);
 static void *matrix_activation_relu(void *arg);
+static void *matrix_d_activation_relu(void *arg);
 static void *matrix_activation_tanh(void *arg);
+static void *matrix_d_activation_tanh(void *arg);
 static void *matrix_activation_leaky_relu(void *arg);
+static void *matrix_d_activation_leaky_relu(void *arg);
 
 static void *matrix_activation_sigmoid(void *arg) {
     thread_args_t *args = (thread_args_t *)arg;
@@ -67,7 +71,7 @@ static void *matrix_activation_softsign(void *arg) {
     return NULL;
 }
 
-static void *matrix_activation_step(void *arg) {
+static void *matrix_d_activation_softsign(void *arg) {
     thread_args_t *args = (thread_args_t *)arg;
     matrix_t *a = args->a;
     matrix_t *b = args->b;
@@ -75,8 +79,8 @@ static void *matrix_activation_step(void *arg) {
          i < args->start_row + tile_size && i < a->m; i++) {
         for (size_t j = args->start_col;
              j < args->start_col + tile_size && j < a->n; j++) {
-            b->values[i * a->n + j] =
-                (a->values[i * a->n + j] >= 0) ? 1.0 : 0.0;
+            float val = a->values[i * a->n + j];
+            b->values[i * a->n + j] = 1 / ((1 + fabs(val)) * (1 + fabs(val)));
         }
     }
     return NULL;
@@ -96,6 +100,20 @@ static void *matrix_activation_relu(void *arg) {
     return NULL;
 }
 
+static void *matrix_d_activation_relu(void *arg) {
+    thread_args_t *args = (thread_args_t *)arg;
+    matrix_t *a = args->a;
+    matrix_t *b = args->b;
+    for (size_t i = args->start_row;
+         i < args->start_row + tile_size && i < a->m; i++) {
+        for (size_t j = args->start_col;
+             j < args->start_col + tile_size && j < a->n; j++) {
+            b->values[i * a->n + j] = a->values[i * a->n + j] > 0;
+        }
+    }
+    return NULL;
+}
+
 static void *matrix_activation_tanh(void *arg) {
     thread_args_t *args = (thread_args_t *)arg;
     matrix_t *a = args->a;
@@ -105,6 +123,21 @@ static void *matrix_activation_tanh(void *arg) {
         for (size_t j = args->start_col;
              j < args->start_col + tile_size && j < a->n; j++) {
             b->values[i * a->n + j] = tanh(a->values[i * a->n + j]);
+        }
+    }
+    return NULL;
+}
+
+static void *matrix_d_activation_tanh(void *arg) {
+    thread_args_t *args = (thread_args_t *)arg;
+    matrix_t *a = args->a;
+    matrix_t *b = args->b;
+    for (size_t i = args->start_row;
+         i < args->start_row + tile_size && i < a->m; i++) {
+        for (size_t j = args->start_col;
+             j < args->start_col + tile_size && j < a->n; j++) {
+            float val = tanh(a->values[i * a->n + j]);
+            b->values[i * a->n + j] = 1 - val * val;
         }
     }
     return NULL;
@@ -127,26 +160,44 @@ static void *matrix_activation_leaky_relu(void *arg) {
     return NULL;
 }
 
-matrix_t matrix_activation(matrix_t a, activation_func_t activation) {
+static void *matrix_d_activation_leaky_relu(void *arg) {
+    thread_args_t *args = (thread_args_t *)arg;
+    matrix_t *a = args->a;
+    matrix_t *b = args->b;
+    for (size_t i = args->start_row;
+         i < args->start_row + tile_size && i < a->m; i++) {
+        for (size_t j = args->start_col;
+             j < args->start_col + tile_size && j < a->n; j++) {
+            b->values[i * a->n + j] =
+                a->values[i * a->n + j] > 0 ? 1 : LEAKY_RELU_ALPHA;
+        }
+    }
+    return NULL;
+}
+
+matrix_t matrix_activation(matrix_t a, activation_func_t activation,
+                           bool derivative) {
     void *(*activation_function)(void *) = NULL;
     switch (activation) {
-        case STEP:
-            activation_function = matrix_activation_step;
-            break;
         case SIGMOID:
-            activation_function = matrix_activation_sigmoid;
+            activation_function = derivative ? matrix_d_activation_sigmoid
+                                             : matrix_activation_sigmoid;
             break;
         case SOFTSIGN:
-            activation_function = matrix_activation_softsign;
+            activation_function = derivative ? matrix_d_activation_softsign
+                                             : matrix_activation_softsign;
             break;
         case RELU:
-            activation_function = matrix_activation_relu;
+            activation_function =
+                derivative ? matrix_d_activation_relu : matrix_activation_relu;
             break;
         case TANH:
-            activation_function = matrix_activation_tanh;
+            activation_function =
+                derivative ? matrix_d_activation_tanh : matrix_activation_tanh;
             break;
         case LEAKY_RELU:
-            activation_function = matrix_activation_leaky_relu;
+            activation_function = derivative ? matrix_d_activation_leaky_relu
+                                             : matrix_activation_leaky_relu;
             break;
     }
 
