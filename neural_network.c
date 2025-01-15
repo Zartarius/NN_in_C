@@ -27,16 +27,19 @@ void create_network(size_t* layer_info, const size_t size_layer_info) {
 
     num_layers = size_layer_info - 1;
     // Subtract one because we don't need to store the input layer
-    layers = (layer_t*)malloc(num_layers *
+    layers = (layer_t*) malloc(num_layers *
                               sizeof(layer_t));  // Allocate memory for layers
+    assert(layers != NULL);
 
     for (size_t i = 0; i < num_layers; i++) {
         // Create Biases - 1 column
         layers[i].biases =
             zeroes(1, layer_info[i + 1]);  // layer_info[0] is the input layer
+        assert(layers[i].biases.values != NULL);
 
         // Create weights matrix
         layers[i].weights = zeroes(layer_info[i], layer_info[i + 1]);
+        assert(layers[i].weights.values != NULL);
 
         float stddev = sqrt(
             2.0 / layer_info[i]);  // Standard deviation for the initialization
