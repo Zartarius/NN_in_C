@@ -34,7 +34,7 @@ void create_network(size_t* layer_info, const size_t size_layer_info) {
     for (size_t i = 0; i < num_layers; i++) {
         // Create Biases - 1 column
         layers[i].biases =
-            zeroes(1, layer_info[i + 1]);  // layer_info[0] is the input layer
+            zeroes(1, layer_info[i + 1]);  
         assert(layers[i].biases.values != NULL);
 
         // Create weights matrix
@@ -57,7 +57,7 @@ void create_network(size_t* layer_info, const size_t size_layer_info) {
 static size_t argmax(float* distribution, size_t num_classes) {
     size_t result = 0;
     float max_prob = distribution[0];
-    printf("num_classes: %zu\n", num_classes);
+
     for (size_t i = 0; i < num_classes; i++) {
         if (distribution[i] > max_prob) {
             max_prob = distribution[i];
