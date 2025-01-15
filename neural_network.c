@@ -18,25 +18,28 @@ typedef struct {
 size_t tile_size = TILE_SIZE;
 
 static layer_t* layers;
-static size_t num_layers = 0;
+static size_t num_layers = 0; // The number of layers, excluding input layer
 static activation_func_t activation = LEAKY_RELU;
 
 void create_network(size_t* layer_info, const size_t size_layer_info) {
     assert(size_layer_info >=
            2);  // Ensure there are at least input and output layers
 
-    num_layers = size_layer_info;
+    num_layers = size_layer_info - 1;
     // Subtract one because we don't need to store the input layer
-    layers = (layer_t*)malloc((num_layers - 1) *
+    layers = (layer_t*) malloc(num_layers *
                               sizeof(layer_t));  // Allocate memory for layers
+    assert(layers != NULL);
 
-    for (size_t i = 0; i < num_layers - 1; i++) {
+    for (size_t i = 0; i < num_layers; i++) {
         // Create Biases - 1 column
         layers[i].biases =
-            zeroes(1, layer_info[i + 1]);  // layer_info[0] is the input layer
+            zeroes(1, layer_info[i + 1]);  
+        assert(layers[i].biases.values != NULL);
 
         // Create weights matrix
         layers[i].weights = zeroes(layer_info[i], layer_info[i + 1]);
+        assert(layers[i].weights.values != NULL);
 
         float stddev = sqrt(
             2.0 / layer_info[i]);  // Standard deviation for the initialization
@@ -54,6 +57,7 @@ void create_network(size_t* layer_info, const size_t size_layer_info) {
 static size_t argmax(float* distribution, size_t num_classes) {
     size_t result = 0;
     float max_prob = distribution[0];
+
     for (size_t i = 0; i < num_classes; i++) {
         if (distribution[i] > max_prob) {
             max_prob = distribution[i];
@@ -79,17 +83,16 @@ static float* softmax_regression(matrix_t input, size_t row_number) {
 
 result_t* predict(matrix_t X) {
     matrix_t input = X;
-    for (size_t i = 0; i < num_layers - 1; i++) {
+    for (size_t i = 0; i < num_layers; i++) {
         matrix_t output = matrix_tile_multiply(input, layers[i].weights);
-        matrix_t bias = layers[i].biases;
-        matrix_add_vector(output, bias);
+        matrix_add_vector(output, layers[i].biases);
 
         if (i == num_layers - 1) {
             input = output;  // In this case, 'input' is the raw values from the
                              // final layer
         } else {
             input = matrix_activation(output, activation, false);
-            free_matrix(output);
+            free(output.values);
         }
     }
     result_t* predictions = (result_t*)malloc(input.m * sizeof(result_t));
