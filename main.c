@@ -5,11 +5,11 @@
 
 int main() {
     // determine_cache(); // COMMENT THIS OUT IF YOU ARE A MAC USER
-    size_t layer_info[] = {784, 128, 128, 10};
+    size_t layer_info[] = {784, 256, 128, 10};
     size_t num_layers = sizeof(layer_info) / sizeof(size_t);
     
     create_network(layer_info, num_layers);
-    matrix_t inputs = random_matrix(1, 784);
+    matrix_t inputs = random_matrix(20, 784);
     result_t* predictions = predict(inputs);
 
     for (size_t i = 0; i < 20; i++) {
@@ -19,4 +19,6 @@ int main() {
         }
         printf("\n");
     }
+
+    return 0;
 }
