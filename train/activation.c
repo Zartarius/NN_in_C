@@ -168,8 +168,8 @@ static void *matrix_d_activation_leaky_relu(void *arg) {
          i < args->start_row + tile_size && i < a->m; i++) {
         for (size_t j = args->start_col;
              j < args->start_col + tile_size && j < a->n; j++) {
-            b->values[i * a->n + j] =
-                a->values[i * a->n + j] > 0 ? 1 : LEAKY_RELU_ALPHA;
+            float val = a->values[i * a->n + j];
+            b->values[i * a->n + j] = val > 0 ? 1 : LEAKY_RELU_ALPHA;
         }
     }
     return NULL;

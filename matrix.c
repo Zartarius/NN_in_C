@@ -44,15 +44,15 @@ matrix_t random_matrix(const size_t m, const size_t n) {
 
     for (size_t i = 0; i < m; i++) {
         for (size_t j = 0; j < n; j++) {
-            matrix.values[i * n + j] = (float) rand() / (float) RAND_MAX;
+            matrix.values[i * n + j] = (float)rand() / (float)RAND_MAX;
         }
     }
     return matrix;
 }
 
 // Private helper function
-static inline float float_abs(float num) { 
-    return (num < 0) ? -num : num; 
+static inline float float_abs(float num) {
+    return (num < 0) ? -num : num;
 }
 
 // Normalises a matrix to have values between -1 and 1
@@ -75,17 +75,17 @@ void normalise(matrix_t matrix) {
     }
 }
 
-static void* parallel_row_adder(void* arg) {
-    thread_args_t args = *(thread_args_t*) arg;
-    float* matrix_values = args.a->values;
-    float* vector_values = args.b->values;
-    size_t n = args.a->n; // Equivalent to args.b->n
+static void *parallel_row_adder(void *arg) {
+    thread_args_t args = *(thread_args_t *)arg;
+    float *matrix_values = args.a->values;
+    float *vector_values = args.b->values;
+    size_t n = args.a->n;                      // Equivalent to args.b->n
     size_t starting_cell = args.start_row * n; // The row to apply the addition on
 
     for (size_t i = 0; i < n; i++) {
         matrix_values[starting_cell + i] += vector_values[i];
     }
-    
+
     return NULL;
 }
 
@@ -103,7 +103,7 @@ void matrix_add_vector(matrix_t matrix, matrix_t vector) {
         args[i].start_row = i;
         args[i].start_col = -1; // We don't need this
 
-        pthread_create(&threads[i], NULL, parallel_row_adder, (void*) &args[i]);
+        pthread_create(&threads[i], NULL, parallel_row_adder, (void *)&args[i]);
     }
 
     for (size_t i = 0; i < matrix.m; i++) {
@@ -136,15 +136,14 @@ static void *compute_tile(void *arg) {
     // Compute the product of the tile
     for (size_t i = start_row; i < start_row + tile_size && i < a->m; i++) {
         for (size_t j = start_col; j < start_col + tile_size && j < b->n; j++) {
-            __m256 sum_vec =
-                _mm256_setzero_ps();  // Initialize AVX vector for accumulation
+            __m256 sum_vec = _mm256_setzero_ps(); // Initialize AVX vector for accumulation
             float sum = 0.0f;
 
             // Process 8 elements at a time using AVX
             size_t k = 0;
             for (; k <= a->n - 8; k += 8) {
                 __m256 a_vec = _mm256_loadu_ps(
-                    &a->values[i * a->n + k]);  // Load 8 elements from matrix A
+                    &a->values[i * a->n + k]); // Load 8 elements from matrix A
                 __m256 b_vec = _mm256_set_ps(
                     b->values[(k + 7) * b->n + j],
                     b->values[(k + 6) * b->n + j],
@@ -153,11 +152,11 @@ static void *compute_tile(void *arg) {
                     b->values[(k + 3) * b->n + j],
                     b->values[(k + 2) * b->n + j],
                     b->values[(k + 1) * b->n + j],
-                    b->values[k * b->n + j]);  // Load 8 elements from matrix B
+                    b->values[k * b->n + j]); // Load 8 elements from matrix B
                 sum_vec = _mm256_fmadd_ps(
                     a_vec, b_vec,
-                    sum_vec);  //_mm256_fmadd_ps(a_vec, b_vec,
-                               // sum_vec); // Multiply and accumulate
+                    sum_vec); //_mm256_fmadd_ps(a_vec, b_vec,
+                              // sum_vec); // Multiply and accumulate
             }
 
             // Sum the elements of the AVX vector
@@ -172,7 +171,7 @@ static void *compute_tile(void *arg) {
                 sum += a->values[i * a->n + k] * b->values[k * b->n + j];
             }
 
-            c->values[i * c->n + j] = sum;  // Store the result
+            c->values[i * c->n + j] = sum; // Store the result
         }
     }
 

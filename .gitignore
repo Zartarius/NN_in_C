@@ -48,3 +48,5 @@ autom4te.cache/
 *.gcda
 *.gcno
 *.gcov
+
+.clang-format
