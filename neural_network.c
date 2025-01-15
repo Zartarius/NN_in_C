@@ -32,16 +32,17 @@ void create_network(size_t *layer_info, const size_t size_layer_info) {
 
     for (size_t i = 0; i < num_layers; i++) {
         // Create Biases - 1 column
-        layers[i].biases = zeroes(1, layer_info[i + 1]);
+        layers[i].biases = zeroes(1, layer_info[i + 1]);  
         assert(layers[i].biases.values != NULL);
 
         // Create weights matrix
         layers[i].weights = zeroes(layer_info[i], layer_info[i + 1]);
         assert(layers[i].weights.values != NULL);
-
-        float stddev = sqrt(2.0 / layer_info[i]); // Standard deviation for the initialization
+ 
+        float stddev = sqrt(
+            2.0 / layer_info[i]);  // Standard deviation for the initialization
         for (size_t j = 0; j < layer_info[i]; j++) {
-            for (size_t k = 0; k < layer_info[i]; k++) {
+            for (size_t k = 0; k < layer_info[i + 1]; k++) {
                 layers[i].weights.values[j * layer_info[i + 1] + k] =
                     ((float)rand() / RAND_MAX) * 2.0 * stddev - stddev;
                 // layers[i].biases.values[k] = ((float) rand() / RAND_MAX) * 2
