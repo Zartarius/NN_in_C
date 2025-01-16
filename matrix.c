@@ -3,7 +3,7 @@
 #include <assert.h>
 #include <immintrin.h>
 #include <math.h>
-#include <pthread.h>
+#include "include/threads.h"
 #include <stdio.h>
 #include <time.h>
 
@@ -75,7 +75,7 @@ void normalise(matrix_t matrix) {
     }
 }
 
-static void *parallel_row_adder(void *arg) {
+static thread_func_return_t WINAPI parallel_row_adder(thread_func_param_t arg) {
     thread_args_t args = *(thread_args_t *)arg;
     float *matrix_values = args.a->values;
     float *vector_values = args.b->values;
@@ -86,15 +86,20 @@ static void *parallel_row_adder(void *arg) {
         matrix_values[starting_cell + i] += vector_values[i];
     }
 
-    return NULL;
+    return (thread_func_return_t)(uintptr_t)NULL;
 }
 
 // Add a vector row-wise to a matrix, to each row
 void matrix_add_vector(matrix_t matrix, matrix_t vector) {
     assert((matrix.n == vector.n) && vector.m == 1);
 
-    pthread_t threads[matrix.m];
+    #ifdef _WIN32
+    thread_t *threads =  malloc(matrix.m *sizeof(thread_t));
+    thread_args_t *args =  malloc(matrix.m * sizeof(thread_args_t));
+    #else
+    thread_t threads[matrix.m];
     thread_args_t args[matrix.m];
+    #endif
 
     for (size_t i = 0; i < matrix.m; i++) {
         args[i].a = &matrix;
@@ -102,13 +107,16 @@ void matrix_add_vector(matrix_t matrix, matrix_t vector) {
         args[i].c = NULL; // We only need 2 matrices of course
         args[i].start_row = i;
         args[i].start_col = -1; // We don't need this
-
-        pthread_create(&threads[i], NULL, parallel_row_adder, (void *)&args[i]);
+        
+        THREAD_CREATE(threads[i], parallel_row_adder, &args[i]);
     }
 
-    for (size_t i = 0; i < matrix.m; i++) {
-        pthread_join(threads[i], NULL);
-    }
+    THREAD_JOIN_AND_CLOSE(threads, matrix.m);
+
+    #ifdef _WIN32
+    free(threads);
+    free(args);
+    #endif
 }
 
 // Returns the transpose of a matrix
@@ -125,7 +133,7 @@ matrix_t transpose(matrix_t original) {
 }
 
 // Function to compute the product of a tile using AVX
-static void *compute_tile(void *arg) {
+static thread_func_return_t WINAPI compute_tile(thread_func_param_t arg) {
     thread_args_t *args = (thread_args_t *)arg;
     matrix_t *a = args->a;
     matrix_t *b = args->b;
@@ -175,7 +183,7 @@ static void *compute_tile(void *arg) {
         }
     }
 
-    return NULL;
+    return (thread_func_return_t)(uintptr_t)NULL;
 }
 
 // Function to multiply two matrices using tiles, threads, and AVX
@@ -195,8 +203,13 @@ matrix_t matrix_tile_multiply(matrix_t a, matrix_t b) {
     size_t num_tiles_col = (b.n + tile_size - 1) / tile_size;
 
     // Create threads for each tile
-    pthread_t threads[num_tiles_row * num_tiles_col];
+    #ifdef _WIN32
+    thread_t *threads = malloc(num_tiles_row * num_tiles_col *sizeof(thread_t));
+    thread_args_t *args = malloc(num_tiles_row * num_tiles_col * sizeof(thread_args_t));
+    #else
+    thread_t threads[num_tiles_row * num_tiles_col];
     thread_args_t args[num_tiles_row * num_tiles_col];
+    #endif
 
     // Initialize thread arguments and create threads
     for (size_t i = 0; i < num_tiles_row; i++) {
@@ -208,20 +221,16 @@ matrix_t matrix_tile_multiply(matrix_t a, matrix_t b) {
             args[i * num_tiles_col + j].start_row = i * tile_size;
             args[i * num_tiles_col + j].start_col = j * tile_size;
 
-            // Create the thread
-            if (pthread_create(&threads[i * num_tiles_col + j], NULL,
-                               compute_tile,
-                               &args[i * num_tiles_col + j]) != 0) {
-                perror("pthread_create");
-                exit(1);
-            }
+            THREAD_CREATE(threads[i * num_tiles_col + j],  compute_tile, &args[i * num_tiles_col + j]);
         }
     }
 
-    // Wait for all threads to finish
-    for (size_t i = 0; i < num_tiles_row * num_tiles_col; i++) {
-        assert(pthread_join(threads[i], NULL) == 0);
-    }
+    THREAD_JOIN_AND_CLOSE(threads, num_tiles_row * num_tiles_col);
+
+    #ifdef _WIN32
+    free(threads);
+    free(args);
+    #endif
 
     return c;
 }

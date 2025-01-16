@@ -112,7 +112,9 @@ result_t *predict(matrix_t X) {
     return predictions;
 }
 
-#ifdef __APPLE__ 
+#ifdef _WIN32
+#include <windows.h>
+#elif defined(__APPLE__) 
 #include <sys/sysctl.h>
 #endif
 
@@ -120,17 +122,48 @@ void determine_cache(void) {
     size_t cache_size = 0;
 
     #ifdef _WIN32
-        FILE *fp = fopen("/sys/devices/system/cpu/cpu0/cache/index2/size", "r");
-        if (fp != NULL) {
-            char buffer[16];
-            if (fgets(buffer, sizeof(buffer), fp)) {
-                cache_size = strtoul(buffer, NULL, 10) * 1024;
+    DWORD bufferSize = 0;
+    PSYSTEM_LOGICAL_PROCESSOR_INFORMATION buffer = NULL;
+
+    // Get the required buffer size
+    if (GetLogicalProcessorInformation(NULL, &bufferSize) != FALSE || GetLastError() != ERROR_INSUFFICIENT_BUFFER) {
+        perror("GetLogicalProcessorInformation");
+        exit(1);
+    }
+
+    // Allocate memory for the processor information
+    buffer = malloc(bufferSize);
+    if (buffer == NULL) {
+        perror("malloc");
+        exit(1);
+    }
+
+    // Retrieve the processor information
+    if (GetLogicalProcessorInformation(buffer, &bufferSize) == FALSE) {
+        perror("GetLogicalProcessorInformation");
+        free(buffer);
+        exit(1);
+    }
+
+    // Parse the processor information to find the L2 cache size
+    PSYSTEM_LOGICAL_PROCESSOR_INFORMATION ptr = buffer;
+    for (DWORD i = 0; i < bufferSize / sizeof(SYSTEM_LOGICAL_PROCESSOR_INFORMATION); i++) {
+        if (ptr->Relationship == RelationCache) {
+            CACHE_DESCRIPTOR cache = ptr->Cache;
+            if (cache.Level == 2) { // L2 Cache
+                cache_size = cache.Size;
+                break;
             }
-            fclose(fp);
-        } else {
-            perror("fopen");
-            exit(1);
         }
+        ptr++;
+    }
+
+    free(buffer);
+
+    if (cache_size == 0) {
+        fprintf(stderr, "Failed to retrieve L2 cache size.\n");
+        exit(1);
+    }
 
     // Check if the system is macOS
     #elif __APPLE__

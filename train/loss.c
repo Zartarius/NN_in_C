@@ -2,11 +2,17 @@
 
 #include <assert.h>
 #include <math.h>
-#include <pthread.h>
+#include "../include/threads.h"
 #include <stdio.h>
 #include <stdlib.h>
 
 extern size_t tile_size;
+
+#ifdef _WIN32
+typedef HANDLE thread_t;
+#else
+typedef pthread thread_t;
+#endif
 
 typedef struct {
     matrix_t *a;
@@ -16,23 +22,23 @@ typedef struct {
     size_t start_col;
 } thread_args_t;
 
-static void *matrix_loss_mse(void *arg);
-static void *matrix_d_loss_mse(void *arg);
+static thread_func_return_t WINAPI matrix_loss_mse(thread_func_param_t arg);
+static thread_func_return_t WINAPI matrix_d_loss_mse(thread_func_param_t arg);
 
-static void *matrix_loss_mae(void *arg);
-static void *matrix_d_loss_mae(void *arg);
+static thread_func_return_t WINAPI matrix_loss_mae(thread_func_param_t arg);
+static thread_func_return_t WINAPI matrix_d_loss_mae(thread_func_param_t arg);
 
-static void *matrix_loss_hubler(void *arg);
-static void *matrix_d_loss_hubler(void *arg);
+static thread_func_return_t WINAPI matrix_loss_hubler(thread_func_param_t arg);
+static thread_func_return_t WINAPI matrix_d_loss_hubler(thread_func_param_t arg);
 
-static void *matrix_loss_log(void *arg);
-static void *matrix_d_loss_log(void *arg);
+static thread_func_return_t WINAPI matrix_loss_log(thread_func_param_t arg);
+static thread_func_return_t WINAPI matrix_d_loss_log(thread_func_param_t arg);
 
-static void *matrix_loss_categorical(void *arg);
-static void *matrix_d_loss_categorical(void *arg);
-static void *matrix_d_loss_categorical_softmax(void *arg);
+static thread_func_return_t WINAPI matrix_loss_categorical(thread_func_param_t arg);
+static thread_func_return_t WINAPI matrix_d_loss_categorical(thread_func_param_t arg);
+static thread_func_return_t WINAPI matrix_d_loss_categorical_softmax(thread_func_param_t arg);
 
-static void *matrix_loss_mse(void *arg) {
+static thread_func_return_t WINAPI matrix_loss_mse(thread_func_param_t arg) {
     thread_args_t *args = (thread_args_t *)arg;
     matrix_t *a = args->a;
     matrix_t *b = args->b;
@@ -47,10 +53,10 @@ static void *matrix_loss_mse(void *arg) {
             *sum += error;
         }
     }
-    return sum;
+    return (thread_func_return_t)(uintptr_t)sum;
 }
 
-static void *matrix_d_loss_mse(void *arg) {
+static thread_func_return_t WINAPI matrix_d_loss_mse(thread_func_param_t arg) {
     thread_args_t *args = (thread_args_t *)arg;
     matrix_t *a = args->a;
     matrix_t *b = args->b;
@@ -65,10 +71,10 @@ static void *matrix_d_loss_mse(void *arg) {
             c->values[i * c->n + j] = (2.0 / n) * (predict - actual);
         }
     }
-    return NULL;
+    return (thread_func_return_t)(uintptr_t)NULL;
 }
 
-static void *matrix_loss_mae(void *arg) {
+static thread_func_return_t WINAPI matrix_loss_mae(thread_func_param_t arg) {
     thread_args_t *args = (thread_args_t *)arg;
     matrix_t *a = args->a;
     matrix_t *b = args->b;
@@ -82,10 +88,10 @@ static void *matrix_loss_mae(void *arg) {
             *sum += fabs(actual - predict);
         }
     }
-    return sum;
+    return (thread_func_return_t)(uintptr_t)sum;
 }
 
-static void *matrix_d_loss_mae(void *arg) {
+static thread_func_return_t WINAPI matrix_d_loss_mae(thread_func_param_t arg) {
     thread_args_t *args = (thread_args_t *)arg;
     matrix_t *a = args->a;
     matrix_t *b = args->b;
@@ -103,12 +109,12 @@ static void *matrix_d_loss_mae(void *arg) {
                                       (float)n;
         }
     }
-    return NULL;
+    return (thread_func_return_t)(uintptr_t)NULL;
 }
 
 #define HUBLER_THRESHOLD 0.01
 
-static void *matrix_loss_hubler(void *arg) {
+static thread_func_return_t WINAPI matrix_loss_hubler(thread_func_param_t arg) {
     thread_args_t *args = (thread_args_t *)arg;
     matrix_t *a = args->a;
     matrix_t *b = args->b;
@@ -125,10 +131,10 @@ static void *matrix_loss_hubler(void *arg) {
                               HUBLER_THRESHOLD * HUBLER_THRESHOLD / 2.0;
         }
     }
-    return sum;
+    return (thread_func_return_t)(uintptr_t)sum;
 }
 
-static void *matrix_d_loss_hubler(void *arg) {
+static thread_func_return_t WINAPI matrix_d_loss_hubler(thread_func_param_t arg) {
     thread_args_t *args = (thread_args_t *)arg;
     matrix_t *a = args->a;
     matrix_t *b = args->b;
@@ -149,10 +155,10 @@ static void *matrix_d_loss_hubler(void *arg) {
                 (float)n;
         }
     }
-    return NULL;
+    return (thread_func_return_t)(uintptr_t)NULL;
 }
 
-static void *matrix_loss_log(void *arg) {
+static thread_func_return_t WINAPI matrix_loss_log(thread_func_param_t arg) {
     thread_args_t *args = (thread_args_t *)arg;
     matrix_t *a = args->a;
     matrix_t *b = args->b;
@@ -166,10 +172,10 @@ static void *matrix_loss_log(void *arg) {
             *sum += actual * log(predict) + (1 - actual) * log(1 - predict);
         }
     }
-    return sum;
+    return (thread_func_return_t)(uintptr_t)sum;
 }
 
-static void *matrix_d_loss_log(void *arg) {
+static thread_func_return_t WINAPI matrix_d_loss_log(thread_func_param_t arg) {
     thread_args_t *args = (thread_args_t *)arg;
     matrix_t *a = args->a;
     matrix_t *b = args->b;
@@ -185,10 +191,10 @@ static void *matrix_d_loss_log(void *arg) {
                 ((predict - actual) / (predict * (1 - predict))) / (float)n;
         }
     }
-    return NULL;
+    return (thread_func_return_t)(uintptr_t)NULL;
 }
 
-static void *matrix_loss_categorical(void *arg) {
+static thread_func_return_t WINAPI matrix_loss_categorical(thread_func_param_t arg) {
     thread_args_t *args = (thread_args_t *)arg;
     matrix_t *a = args->a;
     matrix_t *b = args->b;
@@ -202,10 +208,10 @@ static void *matrix_loss_categorical(void *arg) {
             *sum += actual * log(predict);
         }
     }
-    return sum;
+    return (thread_func_return_t)(uintptr_t)sum;
 }
 
-static void *matrix_d_loss_categorical(void *arg) {
+static thread_func_return_t WINAPI matrix_d_loss_categorical(thread_func_param_t arg) {
     thread_args_t *args = (thread_args_t *)arg;
     matrix_t *a = args->a;
     matrix_t *b = args->b;
@@ -220,10 +226,10 @@ static void *matrix_d_loss_categorical(void *arg) {
             c->values[i * c->n + j] = (actual / predict) / n;
         }
     }
-    return NULL;
+    return (thread_func_return_t)(uintptr_t)NULL;
 }
 
-static void *matrix_d_loss_categorical_softmax(void *arg) {
+static thread_func_return_t WINAPI matrix_d_loss_categorical_softmax(thread_func_param_t arg) {
     thread_args_t *args = (thread_args_t *)arg;
     matrix_t *a = args->a;
     matrix_t *b = args->b;
@@ -238,11 +244,11 @@ static void *matrix_d_loss_categorical_softmax(void *arg) {
             c->values[i * c->n + j] = (predict - actual) / n;
         }
     }
-    return NULL;
+    return (thread_func_return_t)(uintptr_t)NULL;
 }
 
 float matrix_loss(matrix_t Y, matrix_t actual, loss_func_t loss) {
-    void *(*loss_function)(void *) = NULL;
+    thread_func_return_t (*loss_function)(thread_func_param_t) = NULL;
     switch (loss) {
         case MSE:
             loss_function = matrix_loss_mse;
@@ -268,8 +274,13 @@ float matrix_loss(matrix_t Y, matrix_t actual, loss_func_t loss) {
 
     size_t num_tiles_row_col = num_tiles_row * num_tiles_col;
 
-    pthread_t threads[num_tiles_row_col];
-    thread_args_t args[num_tiles_row_col];
+    #ifdef _WIN32
+    thread_t *threads = malloc(num_tiles_row_col *sizeof(thread_t));
+    thread_args_t *args = malloc(num_tiles_row_col * sizeof(thread_args_t));
+    #else
+    thread_t threads[matrix.m];
+    thread_args_t args[matrix.m];
+    #endif
 
     for (size_t i = 0; i < num_tiles_row; i++) {
         for (size_t j = 0; j < num_tiles_col; j++) {
@@ -278,29 +289,31 @@ float matrix_loss(matrix_t Y, matrix_t actual, loss_func_t loss) {
             args[i * num_tiles_col + j].c = NULL;
             args[i * num_tiles_col + j].start_row = i * tile_size;
             args[i * num_tiles_col + j].start_col = j * tile_size;
-            if (pthread_create(&threads[i * num_tiles_col + j], NULL,
-                               loss_function,
-                               &args[i * num_tiles_col + j]) != 0) {
-                perror("pthread_create");
-                exit(1);
-            }
+            THREAD_CREATE(threads[i * num_tiles_col + j], loss_function, &args[i * num_tiles_col + j]);
         }
     }
-    int *result;
+
+    void *result;
     float sum = 0;
 
     for (size_t i = 0; i < num_tiles_row_col; i++) {
-        assert(pthread_join(threads[i], (void **)&result) == 0);
-        sum += *result;
+        THREAD_JOIN(threads[i], result);
+        THREAD_CLOSE(threads[i]);
+        sum += *(int *)result;
         free(result);
     }
+
+    #ifdef _WIN32
+    free(threads);
+    free(args);
+    #endif
 
     return sum / (Y.m * Y.n);
 }
 
 matrix_t matrix_d_loss(matrix_t Y, matrix_t actual, loss_func_t loss,
                        bool uses_softmax) {
-    void *(*loss_d_function)(void *) = NULL;
+    thread_func_return_t(*loss_d_function)(thread_func_arg_t) = NULL;
     switch (loss) {
         case MSE:
             loss_d_function = matrix_d_loss_mae;
@@ -329,8 +342,14 @@ matrix_t matrix_d_loss(matrix_t Y, matrix_t actual, loss_func_t loss,
 
     size_t num_tiles_row_col = num_tiles_row * num_tiles_col;
 
-    pthread_t threads[num_tiles_row_col];
-    thread_args_t args[num_tiles_row_col];
+    #ifdef _WIN32
+    thread_t *threads = malloc(num_tiles_row_col *sizeof(thread_t));
+    thread_args_t *args = malloc(num_tiles_row_col * sizeof(thread_args_t));
+    #else
+    thread_t threads[matrix.m];
+    thread_args_t args[matrix.m];
+    #endif
+
 
     for (size_t i = 0; i < num_tiles_row; i++) {
         for (size_t j = 0; j < num_tiles_col; j++) {
@@ -339,13 +358,16 @@ matrix_t matrix_d_loss(matrix_t Y, matrix_t actual, loss_func_t loss,
             args[i * num_tiles_col + j].c = &c;
             args[i * num_tiles_col + j].start_row = i * tile_size;
             args[i * num_tiles_col + j].start_col = j * tile_size;
-            if (pthread_create(&threads[i * num_tiles_col + j], NULL,
-                               loss_d_function,
-                               &args[i * num_tiles_col + j]) != 0) {
-                perror("pthread_create");
-                exit(1);
-            }
+            THREAD_CREATE(threads[i * num_tiles_col + j], loss_d_function, &args[i * num_tiles_col + j]);
         }
     }
+
+    THREAD_JOIN_AND_CLOSE(threads, num_tiles_row_col);
+
+    #ifdef _WIN32
+    free(threads);
+    free(args);
+    #endif
+
     return c;
 }
