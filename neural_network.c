@@ -1,10 +1,8 @@
 #include "neural_network.h"
-
 #include <assert.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
-
 #include "train/activation.h"
 
 #define TILE_SIZE 8
@@ -114,10 +112,14 @@ result_t *predict(matrix_t X) {
     return predictions;
 }
 
+#ifdef __APPLE__ 
+#include <sys/sysctl.h>
+#endif
+
 void determine_cache(void) {
-    // Check if the system is Windows
+    size_t cache_size = 0;
+
     #ifdef _WIN32
-        size_t cache_size = 0;
         FILE *fp = fopen("/sys/devices/system/cpu/cpu0/cache/index2/size", "r");
         if (fp != NULL) {
             char buffer[16];
@@ -129,9 +131,37 @@ void determine_cache(void) {
             perror("fopen");
             exit(1);
         }
-        tile_size = (int)sqrt((cache_size / sizeof(float)) / 3);
+
+    // Check if the system is macOS
+    #elif __APPLE__
+        // Use sysctl to get the cache size on macOS
+        size_t len = sizeof(cache_size);
+        if (sysctlbyname("hw.l3cachesize", &cache_size, &len, NULL, 0) != 0) {
+            perror("sysctlbyname");
+            exit(1);
+        }
+
+    // Check if the system is Linux
+    #elif __linux__
+        FILE *fp = fopen("/sys/devices/system/cpu/cpu0/cache/index2/size", "r");
+        if (fp != NULL) {
+            char buffer[16];
+            if (fgets(buffer, sizeof(buffer), fp)) {
+                cache_size = strtoul(buffer, NULL, 10) * 1024;
+            }
+            fclose(fp);
+        } else {
+            perror("fopen");
+            exit(1);
+        }
+
+    // Unsupported system
     #else
-        fprintf(stderr, "Cache size determination is not supported on this system.\n");
+        fprintf(stderr, "Cache size determination is not supported on this operating system.\n");
         return;
     #endif
+
+    // Calculate tile size based on cache size
+    tile_size = (int)sqrt((cache_size / sizeof(float)) / 3);
+    printf("TILE_SIZE: %zu\n", tile_size);
 }
