@@ -6,7 +6,7 @@ Implementation of a basic, but optimised classification Neural Network in C from
 # Files
 `main.c` - Main file for testing, and implementing the neural network later on.
 
-`matrix.h` - A C library meant to substitute as a simpler numpy library. Utilises multithreading and SIMD, non-portable implementation. 
+`matrix.h` - A C library meant to substitute as a simpler numpy library. Utilises multithreading and SIMD, non-portable implementation. Matrix multiplication is currently about 1.5-3x slower than numpy.dot, depending on multiple factors. Our implementation is much more resource heavy however. 
 
 `parse_csv.h` - A C library used to convert a csv data file into a useable `matrix_t` format, similar to pandas dataframes in python.
 
