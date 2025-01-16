@@ -4,9 +4,9 @@
 #include "train/activation.h"
 
 int main() {
-    // determine_cache(); // COMMENT THIS OUT IF YOU ARE A MAC USER
+    determine_cache(); // This will not work on non-windows systems
     size_t num_parameters = 784;
-    size_t num_samples = 20;
+    size_t num_samples = 500;
     size_t num_classes = 10;
     
     size_t layer_info[] = {num_parameters, 256, 128, num_classes};
