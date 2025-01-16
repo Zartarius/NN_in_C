@@ -92,8 +92,10 @@ static float *softmax_regression(matrix_t input, size_t row_number) {
 result_t *predict(matrix_t X) {
     matrix_t input = X;
     for (size_t i = 0; i < num_layers; i++) {
+        printf("Layer: %zu\n", i);
         matrix_t output = matrix_tile_multiply(input, layers[i].weights);
         matrix_add_vector(output, layers[i].biases);
+        printf("Success on %zu\n", i);
 
         if (i == num_layers - 1) {
             input = output; // In this case, 'input' is the raw values from the
@@ -102,6 +104,7 @@ result_t *predict(matrix_t X) {
             input = matrix_activation(output, activation, false);
             free(output.values);
         }
+        printf("Success on activation %zu\n", i);
     }
     result_t *predictions = (result_t *)malloc(input.m * sizeof(result_t));
 

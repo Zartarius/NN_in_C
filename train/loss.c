@@ -313,7 +313,7 @@ float matrix_loss(matrix_t Y, matrix_t actual, loss_func_t loss) {
 
 matrix_t matrix_d_loss(matrix_t Y, matrix_t actual, loss_func_t loss,
                        bool uses_softmax) {
-    thread_func_return_t(*loss_d_function)(thread_func_arg_t) = NULL;
+    thread_func_return_t(*loss_d_function)(thread_func_param_t) = NULL;
     switch (loss) {
         case MSE:
             loss_d_function = matrix_d_loss_mae;

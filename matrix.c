@@ -113,9 +113,10 @@ void matrix_add_vector(matrix_t matrix, matrix_t vector) {
 
     THREAD_JOIN_AND_CLOSE(threads, matrix.m);
 
+    printf("Broke out\n");
+
     #ifdef _WIN32
     free(threads);
-    free(args);
     #endif
 }
 

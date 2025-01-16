@@ -14,17 +14,34 @@ typedef LPVOID thread_func_param_t;
 
 #define THREAD_CREATE(thread, func, arg) \
 do { \
-    thread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)(func), arg, 0, NULL); \
+    thread = CreateThread(NULL, 256 * 1024, (LPTHREAD_START_ROUTINE)(func), arg, 0, NULL); \
     if ((thread) == NULL) { \
-        printf("Failed to create thread. Error: %d\n", GetLastError()); \
+        char message[256]; \
+FormatMessage( \
+    FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, \
+    NULL, \
+    GetLastError(), \
+    MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), \
+    message, \
+    sizeof(message), \
+    NULL \
+); \
+printf("Error: %s\n", message); \
+        printf("Failed to create thread. Error: %lu\n", GetLastError()); \
         exit(1); \
     } \
 } while (0)
 
 #define THREAD_JOIN_AND_CLOSE(thread, num_threads) \
 do { \
-    WaitForMultipleObjects(num_threads, threads, TRUE, INFINITE); \
-    for (int i = 0; i < (num_threads); i++) { \
+    for(size_t i = 0; i < num_threads; i++) { \
+    DWORD waitResult = WaitForSingleObject(threads[i], INFINITE); \
+    if (waitResult == WAIT_FAILED) { \
+        fprintf(stderr, "Failed to wait for thread %zu: %lu\n", i, GetLastError()); \
+        exit(1); \
+    } \
+    } \
+    for (size_t i = 0; i < (num_threads); i++) { \
         CloseHandle(threads[i]); \
     } \
 } while(0)
