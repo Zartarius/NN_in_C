@@ -11,22 +11,12 @@ typedef HANDLE thread_t;
 typedef DWORD thread_func_return_t; // Ensure this matches LPTHREAD_START_ROUTINE
 
 typedef LPVOID thread_func_param_t;
+#define THREAD_ENTRY thread_func_return_t WINAPI
 
 #define THREAD_CREATE(thread, func, arg) \
 do { \
     thread = CreateThread(NULL, 256 * 1024, (LPTHREAD_START_ROUTINE)(func), arg, 0, NULL); \
     if ((thread) == NULL) { \
-        char message[256]; \
-FormatMessage( \
-    FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, \
-    NULL, \
-    GetLastError(), \
-    MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), \
-    message, \
-    sizeof(message), \
-    NULL \
-); \
-printf("Error: %s\n", message); \
         printf("Failed to create thread. Error: %lu\n", GetLastError()); \
         exit(1); \
     } \
@@ -69,6 +59,7 @@ do { \
 typedef pthread_t thread_t;
 typedef void *thread_func_return_t;
 typedef void *thread_func_param_t;
+#define THREAD_ENTRY thread_func_return_t
 
 #define THREAD_CREATE(thread, func, arg) \
 do { \

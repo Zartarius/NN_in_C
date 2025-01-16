@@ -1,6 +1,7 @@
 {
         "files.associations": {
                 "immintrin.h": "c",
-                "matrix.h": "c"
+                "matrix.h": "c",
+                "assert.h": "c"
         }
 }

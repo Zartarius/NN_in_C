@@ -4,6 +4,7 @@
 #include <errno.h>
 #include <math.h>
 #include <stdio.h>
+#include <stdint.h>
 
 #include "../include/threads.h"
 
@@ -16,18 +17,18 @@ typedef struct {
     size_t start_col;
 } thread_args_t;
 
-static thread_func_return_t WINAPI matrix_activation_sigmoid(thread_func_param_t arg);
-static thread_func_return_t WINAPI matrix_d_activation_sigmoid(thread_func_param_t  arg);
-static thread_func_return_t WINAPI matrix_activation_softsign(thread_func_param_t  arg);
-static thread_func_return_t WINAPI matrix_d_activation_softsign(thread_func_param_t  arg);
-static thread_func_return_t WINAPI matrix_activation_relu(thread_func_param_t  arg);
-static thread_func_return_t WINAPI matrix_d_activation_relu(thread_func_param_t  arg);
-static thread_func_return_t WINAPI matrix_activation_tanh(thread_func_param_t  arg);
-static thread_func_return_t WINAPI matrix_d_activation_tanh(thread_func_param_t  arg);
-static thread_func_return_t WINAPI matrix_activation_leaky_relu(thread_func_param_t  arg);
-static thread_func_return_t WINAPI matrix_d_activation_leaky_relu(thread_func_param_t  arg);
+static THREAD_ENTRY matrix_activation_sigmoid(thread_func_param_t arg);
+static THREAD_ENTRY matrix_d_activation_sigmoid(thread_func_param_t  arg);
+static THREAD_ENTRY matrix_activation_softsign(thread_func_param_t  arg);
+static THREAD_ENTRY matrix_d_activation_softsign(thread_func_param_t  arg);
+static THREAD_ENTRY matrix_activation_relu(thread_func_param_t  arg);
+static THREAD_ENTRY matrix_d_activation_relu(thread_func_param_t  arg);
+static THREAD_ENTRY matrix_activation_tanh(thread_func_param_t  arg);
+static THREAD_ENTRY matrix_d_activation_tanh(thread_func_param_t  arg);
+static THREAD_ENTRY matrix_activation_leaky_relu(thread_func_param_t  arg);
+static THREAD_ENTRY matrix_d_activation_leaky_relu(thread_func_param_t  arg);
 
-static thread_func_return_t WINAPI matrix_activation_sigmoid(thread_func_param_t  arg) {
+static THREAD_ENTRY matrix_activation_sigmoid(thread_func_param_t  arg) {
     thread_args_t *args = (thread_args_t *)arg;
     matrix_t *a = args->a;
     matrix_t *b = args->b;
@@ -42,7 +43,7 @@ static thread_func_return_t WINAPI matrix_activation_sigmoid(thread_func_param_t
     return (thread_func_return_t)(uintptr_t)NULL;
 }
 
-static thread_func_return_t WINAPI matrix_d_activation_sigmoid(thread_func_param_t  arg) {
+static THREAD_ENTRY matrix_d_activation_sigmoid(thread_func_param_t  arg) {
     thread_args_t *args = (thread_args_t *)arg;
     matrix_t *a = args->a;
     matrix_t *b = args->b;
@@ -57,7 +58,7 @@ static thread_func_return_t WINAPI matrix_d_activation_sigmoid(thread_func_param
     return (thread_func_return_t)(uintptr_t)NULL;
 }
 
-static thread_func_return_t WINAPI matrix_activation_softsign(thread_func_param_t  arg) {
+static THREAD_ENTRY  matrix_activation_softsign(thread_func_param_t  arg) {
     thread_args_t *args = (thread_args_t *)arg;
     matrix_t *a = args->a;
     matrix_t *b = args->b;
@@ -72,7 +73,7 @@ static thread_func_return_t WINAPI matrix_activation_softsign(thread_func_param_
     return (thread_func_return_t)(uintptr_t)NULL;
 }
 
-static thread_func_return_t WINAPI matrix_d_activation_softsign(thread_func_param_t  arg) {
+static THREAD_ENTRY matrix_d_activation_softsign(thread_func_param_t  arg) {
     thread_args_t *args = (thread_args_t *)arg;
     matrix_t *a = args->a;
     matrix_t *b = args->b;
@@ -87,7 +88,7 @@ static thread_func_return_t WINAPI matrix_d_activation_softsign(thread_func_para
     return (thread_func_return_t)(uintptr_t)NULL;
 }
 
-static thread_func_return_t WINAPI matrix_activation_relu(thread_func_param_t  arg) {
+static THREAD_ENTRY matrix_activation_relu(thread_func_param_t  arg) {
     thread_args_t *args = (thread_args_t *)arg;
     matrix_t *a = args->a;
     matrix_t *b = args->b;
@@ -101,7 +102,7 @@ static thread_func_return_t WINAPI matrix_activation_relu(thread_func_param_t  a
     return (thread_func_return_t)(uintptr_t)NULL;
 }
 
-static thread_func_return_t WINAPI matrix_d_activation_relu(thread_func_param_t  arg) {
+static THREAD_ENTRY matrix_d_activation_relu(thread_func_param_t  arg) {
     thread_args_t *args = (thread_args_t *)arg;
     matrix_t *a = args->a;
     matrix_t *b = args->b;
@@ -115,7 +116,7 @@ static thread_func_return_t WINAPI matrix_d_activation_relu(thread_func_param_t 
     return (thread_func_return_t)(uintptr_t)NULL;
 }
 
-static thread_func_return_t WINAPI matrix_activation_tanh(thread_func_param_t  arg) {
+static THREAD_ENTRY matrix_activation_tanh(thread_func_param_t  arg) {
     thread_args_t *args = (thread_args_t *)arg;
     matrix_t *a = args->a;
     matrix_t *b = args->b;
@@ -129,7 +130,7 @@ static thread_func_return_t WINAPI matrix_activation_tanh(thread_func_param_t  a
     return (thread_func_return_t)(uintptr_t)NULL;
 }
 
-static thread_func_return_t WINAPI matrix_d_activation_tanh(thread_func_param_t  arg) {
+static THREAD_ENTRY matrix_d_activation_tanh(thread_func_param_t  arg) {
     thread_args_t *args = (thread_args_t *)arg;
     matrix_t *a = args->a;
     matrix_t *b = args->b;
@@ -146,7 +147,7 @@ static thread_func_return_t WINAPI matrix_d_activation_tanh(thread_func_param_t 
 
 #define LEAKY_RELU_ALPHA 0.01
 
-static thread_func_return_t WINAPI matrix_activation_leaky_relu(thread_func_param_t  arg) {
+static THREAD_ENTRY matrix_activation_leaky_relu(thread_func_param_t  arg) {
     thread_args_t *args = (thread_args_t *)arg;
     matrix_t *a = args->a;
     matrix_t *b = args->b;
@@ -161,7 +162,7 @@ static thread_func_return_t WINAPI matrix_activation_leaky_relu(thread_func_para
     return (thread_func_return_t)(uintptr_t)NULL;
 }
 
-static thread_func_return_t WINAPI matrix_d_activation_leaky_relu(thread_func_param_t  arg) {
+static THREAD_ENTRY matrix_d_activation_leaky_relu(thread_func_param_t  arg) {
     thread_args_t *args = (thread_args_t *)arg;
     matrix_t *a = args->a;
     matrix_t *b = args->b;
@@ -213,8 +214,8 @@ matrix_t matrix_activation(matrix_t a, activation_func_t activation,
     thread_t *threads = malloc(num_tiles_row_col *sizeof(thread_t));
     thread_args_t *args = malloc(num_tiles_row_col * sizeof(thread_args_t));
     #else
-    thread_t threads[matrix.m];
-    thread_args_t args[matrix.m];
+    thread_t threads[num_tiles_row_col];
+    thread_args_t args[num_tiles_row_col];
     #endif
 
     for (size_t i = 0; i < num_tiles_row; i++) {

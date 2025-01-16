@@ -6,6 +6,7 @@
 #include "include/threads.h"
 #include <stdio.h>
 #include <time.h>
+#include <stdint.h>
 
 extern size_t tile_size;
 
@@ -75,7 +76,7 @@ void normalise(matrix_t matrix) {
     }
 }
 
-static thread_func_return_t WINAPI parallel_row_adder(thread_func_param_t arg) {
+static THREAD_ENTRY parallel_row_adder(thread_func_param_t arg) {
     thread_args_t args = *(thread_args_t *)arg;
     float *matrix_values = args.a->values;
     float *vector_values = args.b->values;
@@ -117,6 +118,7 @@ void matrix_add_vector(matrix_t matrix, matrix_t vector) {
 
     #ifdef _WIN32
     free(threads);
+    free(args);
     #endif
 }
 
@@ -134,7 +136,7 @@ matrix_t transpose(matrix_t original) {
 }
 
 // Function to compute the product of a tile using AVX
-static thread_func_return_t WINAPI compute_tile(thread_func_param_t arg) {
+static THREAD_ENTRY compute_tile(thread_func_param_t arg) {
     thread_args_t *args = (thread_args_t *)arg;
     matrix_t *a = args->a;
     matrix_t *b = args->b;

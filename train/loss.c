@@ -5,14 +5,9 @@
 #include "../include/threads.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
 
 extern size_t tile_size;
-
-#ifdef _WIN32
-typedef HANDLE thread_t;
-#else
-typedef pthread thread_t;
-#endif
 
 typedef struct {
     matrix_t *a;
@@ -22,23 +17,23 @@ typedef struct {
     size_t start_col;
 } thread_args_t;
 
-static thread_func_return_t WINAPI matrix_loss_mse(thread_func_param_t arg);
-static thread_func_return_t WINAPI matrix_d_loss_mse(thread_func_param_t arg);
+static THREAD_ENTRY matrix_loss_mse(thread_func_param_t arg);
+static THREAD_ENTRY matrix_d_loss_mse(thread_func_param_t arg);
 
-static thread_func_return_t WINAPI matrix_loss_mae(thread_func_param_t arg);
-static thread_func_return_t WINAPI matrix_d_loss_mae(thread_func_param_t arg);
+static THREAD_ENTRY matrix_loss_mae(thread_func_param_t arg);
+static THREAD_ENTRY matrix_d_loss_mae(thread_func_param_t arg);
 
-static thread_func_return_t WINAPI matrix_loss_hubler(thread_func_param_t arg);
-static thread_func_return_t WINAPI matrix_d_loss_hubler(thread_func_param_t arg);
+static THREAD_ENTRY matrix_loss_hubler(thread_func_param_t arg);
+static THREAD_ENTRY matrix_d_loss_hubler(thread_func_param_t arg);
 
-static thread_func_return_t WINAPI matrix_loss_log(thread_func_param_t arg);
-static thread_func_return_t WINAPI matrix_d_loss_log(thread_func_param_t arg);
+static THREAD_ENTRY matrix_loss_log(thread_func_param_t arg);
+static THREAD_ENTRY matrix_d_loss_log(thread_func_param_t arg);
 
-static thread_func_return_t WINAPI matrix_loss_categorical(thread_func_param_t arg);
-static thread_func_return_t WINAPI matrix_d_loss_categorical(thread_func_param_t arg);
-static thread_func_return_t WINAPI matrix_d_loss_categorical_softmax(thread_func_param_t arg);
+static THREAD_ENTRY matrix_loss_categorical(thread_func_param_t arg);
+static THREAD_ENTRY matrix_d_loss_categorical(thread_func_param_t arg);
+static THREAD_ENTRY matrix_d_loss_categorical_softmax(thread_func_param_t arg);
 
-static thread_func_return_t WINAPI matrix_loss_mse(thread_func_param_t arg) {
+static THREAD_ENTRY matrix_loss_mse(thread_func_param_t arg) {
     thread_args_t *args = (thread_args_t *)arg;
     matrix_t *a = args->a;
     matrix_t *b = args->b;
@@ -56,7 +51,7 @@ static thread_func_return_t WINAPI matrix_loss_mse(thread_func_param_t arg) {
     return (thread_func_return_t)(uintptr_t)sum;
 }
 
-static thread_func_return_t WINAPI matrix_d_loss_mse(thread_func_param_t arg) {
+static THREAD_ENTRY matrix_d_loss_mse(thread_func_param_t arg) {
     thread_args_t *args = (thread_args_t *)arg;
     matrix_t *a = args->a;
     matrix_t *b = args->b;
@@ -74,7 +69,7 @@ static thread_func_return_t WINAPI matrix_d_loss_mse(thread_func_param_t arg) {
     return (thread_func_return_t)(uintptr_t)NULL;
 }
 
-static thread_func_return_t WINAPI matrix_loss_mae(thread_func_param_t arg) {
+static THREAD_ENTRY matrix_loss_mae(thread_func_param_t arg) {
     thread_args_t *args = (thread_args_t *)arg;
     matrix_t *a = args->a;
     matrix_t *b = args->b;
@@ -91,7 +86,7 @@ static thread_func_return_t WINAPI matrix_loss_mae(thread_func_param_t arg) {
     return (thread_func_return_t)(uintptr_t)sum;
 }
 
-static thread_func_return_t WINAPI matrix_d_loss_mae(thread_func_param_t arg) {
+static THREAD_ENTRY matrix_d_loss_mae(thread_func_param_t arg) {
     thread_args_t *args = (thread_args_t *)arg;
     matrix_t *a = args->a;
     matrix_t *b = args->b;
@@ -114,7 +109,7 @@ static thread_func_return_t WINAPI matrix_d_loss_mae(thread_func_param_t arg) {
 
 #define HUBLER_THRESHOLD 0.01
 
-static thread_func_return_t WINAPI matrix_loss_hubler(thread_func_param_t arg) {
+static THREAD_ENTRY matrix_loss_hubler(thread_func_param_t arg) {
     thread_args_t *args = (thread_args_t *)arg;
     matrix_t *a = args->a;
     matrix_t *b = args->b;
@@ -134,7 +129,7 @@ static thread_func_return_t WINAPI matrix_loss_hubler(thread_func_param_t arg) {
     return (thread_func_return_t)(uintptr_t)sum;
 }
 
-static thread_func_return_t WINAPI matrix_d_loss_hubler(thread_func_param_t arg) {
+static THREAD_ENTRY matrix_d_loss_hubler(thread_func_param_t arg) {
     thread_args_t *args = (thread_args_t *)arg;
     matrix_t *a = args->a;
     matrix_t *b = args->b;
@@ -158,7 +153,7 @@ static thread_func_return_t WINAPI matrix_d_loss_hubler(thread_func_param_t arg)
     return (thread_func_return_t)(uintptr_t)NULL;
 }
 
-static thread_func_return_t WINAPI matrix_loss_log(thread_func_param_t arg) {
+static THREAD_ENTRY matrix_loss_log(thread_func_param_t arg) {
     thread_args_t *args = (thread_args_t *)arg;
     matrix_t *a = args->a;
     matrix_t *b = args->b;
@@ -175,7 +170,7 @@ static thread_func_return_t WINAPI matrix_loss_log(thread_func_param_t arg) {
     return (thread_func_return_t)(uintptr_t)sum;
 }
 
-static thread_func_return_t WINAPI matrix_d_loss_log(thread_func_param_t arg) {
+static THREAD_ENTRY matrix_d_loss_log(thread_func_param_t arg) {
     thread_args_t *args = (thread_args_t *)arg;
     matrix_t *a = args->a;
     matrix_t *b = args->b;
@@ -194,7 +189,7 @@ static thread_func_return_t WINAPI matrix_d_loss_log(thread_func_param_t arg) {
     return (thread_func_return_t)(uintptr_t)NULL;
 }
 
-static thread_func_return_t WINAPI matrix_loss_categorical(thread_func_param_t arg) {
+static THREAD_ENTRY matrix_loss_categorical(thread_func_param_t arg) {
     thread_args_t *args = (thread_args_t *)arg;
     matrix_t *a = args->a;
     matrix_t *b = args->b;
@@ -211,7 +206,7 @@ static thread_func_return_t WINAPI matrix_loss_categorical(thread_func_param_t a
     return (thread_func_return_t)(uintptr_t)sum;
 }
 
-static thread_func_return_t WINAPI matrix_d_loss_categorical(thread_func_param_t arg) {
+static THREAD_ENTRY matrix_d_loss_categorical(thread_func_param_t arg) {
     thread_args_t *args = (thread_args_t *)arg;
     matrix_t *a = args->a;
     matrix_t *b = args->b;
@@ -229,7 +224,7 @@ static thread_func_return_t WINAPI matrix_d_loss_categorical(thread_func_param_t
     return (thread_func_return_t)(uintptr_t)NULL;
 }
 
-static thread_func_return_t WINAPI matrix_d_loss_categorical_softmax(thread_func_param_t arg) {
+static THREAD_ENTRY matrix_d_loss_categorical_softmax(thread_func_param_t arg) {
     thread_args_t *args = (thread_args_t *)arg;
     matrix_t *a = args->a;
     matrix_t *b = args->b;
@@ -278,8 +273,8 @@ float matrix_loss(matrix_t Y, matrix_t actual, loss_func_t loss) {
     thread_t *threads = malloc(num_tiles_row_col *sizeof(thread_t));
     thread_args_t *args = malloc(num_tiles_row_col * sizeof(thread_args_t));
     #else
-    thread_t threads[matrix.m];
-    thread_args_t args[matrix.m];
+    thread_t threads[num_tiles_row_col];
+    thread_args_t args[num_tiles_row_col];
     #endif
 
     for (size_t i = 0; i < num_tiles_row; i++) {
@@ -346,8 +341,8 @@ matrix_t matrix_d_loss(matrix_t Y, matrix_t actual, loss_func_t loss,
     thread_t *threads = malloc(num_tiles_row_col *sizeof(thread_t));
     thread_args_t *args = malloc(num_tiles_row_col * sizeof(thread_args_t));
     #else
-    thread_t threads[matrix.m];
-    thread_args_t args[matrix.m];
+    thread_t threads[num_tiles_row_col];
+    thread_args_t args[num_tiles_row_col];
     #endif
 
 
