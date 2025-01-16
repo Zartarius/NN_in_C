@@ -39,8 +39,19 @@ void create_network(size_t *layer_info, const size_t size_layer_info) {
         layers[i].weights = zeroes(layer_info[i], layer_info[i + 1]);
         assert(layers[i].weights.values != NULL);
  
-        float stddev = sqrt(
-            2.0 / layer_info[i]);  // Standard deviation for the initialization
+        float stddev = sqrt(2.0 / layer_info[i]);  // Standard deviation for the initialization
+        size_t num_rows = layers[i].weights.m;
+        size_t num_cols = layers[i].weights.n;
+
+        for (size_t j = 0; j < num_rows; j++) {
+            for (size_t k = 0; k < num_cols; k++) {
+                layers[i].weights.values[j * num_cols + k] = 
+                    ((float)rand() / RAND_MAX) * 2.0 * stddev - stddev;
+                // layers[i].biases.values[k] = ((float) rand() / RAND_MAX) * 2
+                // * stddev - stddev;
+            }
+        }
+        /*
         for (size_t j = 0; j < layer_info[i]; j++) {
             for (size_t k = 0; k < layer_info[i + 1]; k++) {
                 layers[i].weights.values[j * layer_info[i + 1] + k] =
@@ -49,6 +60,7 @@ void create_network(size_t *layer_info, const size_t size_layer_info) {
                 // * stddev - stddev;
             }
         }
+        */
     }
 }
 
@@ -92,7 +104,6 @@ result_t *predict(matrix_t X) {
             input = matrix_activation(output, activation, false);
             free(output.values);
         }
-        printf("input.m: %zu %zu\n", input.m, input.n);
     }
     result_t *predictions = (result_t *)malloc(input.m * sizeof(result_t));
 
