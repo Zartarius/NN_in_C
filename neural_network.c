@@ -163,5 +163,4 @@ void determine_cache(void) {
 
     // Calculate tile size based on cache size
     tile_size = (int)sqrt((cache_size / sizeof(float)) / 3);
-    printf("TILE_SIZE: %zu\n", tile_size);
 }
