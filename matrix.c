@@ -81,11 +81,29 @@ static void *parallel_row_adder(void *arg) {
     float *vector_values = args.b->values;
     size_t n = args.a->n;                      // Equivalent to args.b->n
     size_t starting_cell = args.start_row * n; // The row to apply the addition on
-
+    
     for (size_t i = 0; i < n; i++) {
         matrix_values[starting_cell + i] += vector_values[i];
     }
+    
+    /*
+    size_t end_cell = (args.start_row + 1) * n;
+    size_t i = args.start_row * n;
+    for (; i < end_cell - 7; i += 8) {
+        matrix_values[i] += vector_values[i];
+        matrix_values[i + 1] += vector_values[i + 1];
+        matrix_values[i + 2] += vector_values[i + 2];
+        matrix_values[i + 3] += vector_values[i + 3];
+        matrix_values[i + 4] += vector_values[i + 4];
+        matrix_values[i + 5] += vector_values[i + 5];
+        matrix_values[i + 6] += vector_values[i + 6];
+        matrix_values[i + 7] += vector_values[i + 7];
+    }
 
+    for (; i < end_cell; i++) {
+        matrix_values[i] += vector_values[i];
+    }
+    */
     return NULL;
 }
 
