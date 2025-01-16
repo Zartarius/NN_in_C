@@ -115,17 +115,23 @@ result_t *predict(matrix_t X) {
 }
 
 void determine_cache(void) {
-    size_t cache_size = 0;
-    FILE *fp = fopen("/sys/devices/system/cpu/cpu0/cache/index2/size", "r");
-    if (fp != NULL) {
-        char buffer[16];
-        if (fgets(buffer, sizeof(buffer), fp)) {
-            cache_size = strtoul(buffer, NULL, 10) * 1024;
+    // Check if the system is Windows
+    #ifdef _WIN32
+        size_t cache_size = 0;
+        FILE *fp = fopen("/sys/devices/system/cpu/cpu0/cache/index2/size", "r");
+        if (fp != NULL) {
+            char buffer[16];
+            if (fgets(buffer, sizeof(buffer), fp)) {
+                cache_size = strtoul(buffer, NULL, 10) * 1024;
+            }
+            fclose(fp);
+        } else {
+            perror("fopen");
+            exit(1);
         }
-        fclose(fp);
-    } else {
-        perror("fopen");
-        exit(1);
-    }
-    tile_size = (int)sqrt((cache_size / sizeof(float)) / 3);
+        tile_size = (int)sqrt((cache_size / sizeof(float)) / 3);
+    #else
+        fprintf(stderr, "Cache size determination is not supported on this system.\n");
+        return;
+    #endif
 }
