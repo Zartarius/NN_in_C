@@ -162,7 +162,7 @@ static THREAD_ENTRY matrix_activation_leaky_relu(thread_func_param_t  arg) {
     return (thread_func_return_t)(uintptr_t)NULL;
 }
 
-static THREAD_ENTRY matrix_d_activation_leaky_relu(thread_func_param_t  arg) {
+static THREAD_ENTRY matrix_d_activation_leaky_relu(thread_func_param_t arg) {
     thread_args_t *args = (thread_args_t *)arg;
     matrix_t *a = args->a;
     matrix_t *b = args->b;

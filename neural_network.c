@@ -1,9 +1,10 @@
 #include "neural_network.h"
+#include "train/activation.h"
+#include "train/loss.h"
 #include <assert.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include "train/activation.h"
 
 #define TILE_SIZE 8
 
@@ -18,6 +19,8 @@ size_t tile_size = TILE_SIZE;
 static layer_t *layers;
 static size_t num_layers = 0; // The number of layers, excluding input layer
 static activation_func_t activation = LEAKY_RELU;
+static loss_func_t loss_func = CATEGORICAL;
+static float learning_rate = 1e-7;
 
 void create_network(size_t *layer_info, const size_t size_layer_info) {
     assert(size_layer_info >= 2); // Ensure there are at least input and output layers
@@ -25,25 +28,25 @@ void create_network(size_t *layer_info, const size_t size_layer_info) {
     num_layers = size_layer_info - 1;
     // Subtract one because we don't need to store the input layer
     layers = (layer_t *)malloc(num_layers * sizeof(layer_t)); // Allocate memory for layers
-    
+
     assert(layers != NULL);
 
     for (size_t i = 0; i < num_layers; i++) {
         // Create Biases - 1 column
-        layers[i].biases = zeroes(1, layer_info[i + 1]);  
+        layers[i].biases = zeroes(1, layer_info[i + 1]);
         assert(layers[i].biases.values != NULL);
 
         // Create weights matrix
         layers[i].weights = zeroes(layer_info[i], layer_info[i + 1]);
         assert(layers[i].weights.values != NULL);
- 
-        float stddev = sqrt(2.0 / layer_info[i]);  // Standard deviation for the initialization
+
+        float stddev = sqrt(2.0 / layer_info[i]); // Standard deviation for the initialization
         size_t num_rows = layers[i].weights.m;
         size_t num_cols = layers[i].weights.n;
 
         for (size_t j = 0; j < num_rows; j++) {
             for (size_t k = 0; k < num_cols; k++) {
-                layers[i].weights.values[j * num_cols + k] = 
+                layers[i].weights.values[j * num_cols + k] =
                     ((float)rand() / RAND_MAX) * 2.0 * stddev - stddev;
                 // layers[i].biases.values[k] = ((float) rand() / RAND_MAX) * 2
                 // * stddev - stddev;
@@ -72,24 +75,32 @@ static size_t argmax(float *distribution, size_t num_classes) {
             result = i;
         }
     }
+
     return result;
 }
 
-static float *softmax_regression(matrix_t input, size_t row_number) {
-    float *distribution = malloc(input.n * sizeof(float));
-    float sum = 0.0;
-    for (size_t i = 0; i < input.n; i++) {
-        distribution[i] = exp(input.values[input.n * row_number + i]);
-        sum += distribution[i]; // Calculate the sum of the distribution,
-                                // simultaneously
-    }
-    for (size_t i = 0; i < input.n; i++) {
-        distribution[i] /= sum; // Normalize the distribution
+static matrix_t softmax_regression(matrix_t input) {
+    matrix_t distribution = zeroes(input.m, input.n);
+    for (size_t i = 0; i < input.m; i++) {
+        // get the max to normalise the values
+        float max_val = input.values[i * input.n];
+        for (size_t j = 0; j < input.n; j++) {
+            max_val = fmax(max_val, input.values[i * input.n + j]);
+        }
+
+        float sum = 0;
+        for (size_t j = 0; j < input.n; j++) {
+            sum += distribution.values[i * input.n + j] = exp(input.values[i * input.n + j]);
+        }
+
+        for (size_t j = 0; j < input.n; j++) {
+            distribution.values[i * input.n + j] /= sum;
+        }
     }
     return distribution;
 }
 
-result_t *predict(matrix_t X) {
+result_t predict(matrix_t X) {
     matrix_t input = X;
     for (size_t i = 0; i < num_layers; i++) {
         printf("Layer: %zu\n", i);
@@ -106,25 +117,86 @@ result_t *predict(matrix_t X) {
         }
         printf("Success on activation %zu\n", i);
     }
-    result_t *predictions = (result_t *)malloc(input.m * sizeof(result_t));
 
+    result_t results;
+    printf("GETTING SOFTMAX\n");
+    results.distribution = softmax_regression(input);
+    results.prediction = malloc(input.m * sizeof(size_t));
     for (size_t i = 0; i < input.m; i++) {
-        predictions[i].distribution = softmax_regression(input, i);
-        predictions[i].prediction = argmax(predictions[i].distribution, input.n);
+        puts("GETTING ARGMAX\n");
+        results.prediction[i] = argmax(&results.distribution.values[i * input.n], input.n);
     }
-    return predictions;
+    return results;
+}
+
+void train(matrix_t X, matrix_t Y) {
+    matrix_t input = X;
+    matrix_t *outputs = malloc(num_layers * sizeof(matrix_t)); // before activations
+
+    // - 1 because we do it manually for output layer
+    matrix_t *activations = malloc((num_layers - 1) * sizeof(matrix_t));
+    for (size_t i = 0; i < num_layers; i++) {
+        printf("Layer: %zu\n", i);
+        outputs[i] = input;
+
+        matrix_t output = matrix_tile_multiply(input, layers[i].weights);
+        matrix_add_vector(output, layers[i].biases);
+        printf("Success on %zu\n", i);
+
+        if (i == num_layers - 1) {
+            input = output; // In this case, 'input' is the raw values from the
+                            // final layer
+        } else {
+            input = matrix_activation(output, activation, false);
+            activations[i] = input;
+        }
+        printf("Success on activation %zu\n", i);
+    }
+
+    result_t results;
+    results.distribution = softmax_regression(input);
+    matrix_t loss = matrix_d_loss(input, Y, loss_func, true);
+    // normally we would do derivative of loss * derivative of activation function
+    // which becomes derivative of categorical * derivative of softmax
+    // theres a trick where u can just combine the two and avoid heavy computations
+    matrix_t error = loss;
+
+    // todo: start from num_layers - 2
+    matrix_t *d_weights = malloc(sizeof(matrix_t) * num_layers);
+    matrix_t *d_bias = malloc(sizeof(matrix_t) * num_layers);
+
+    for (size_t i = num_layers - 2; i > 0; i--) {
+        // w.T . error . f'(z)
+        // f' = derivative of activation function
+        // z = outputs of layer
+        // w.T = transpose of weights
+        error = matrix_tile_multiply(
+            matrix_tile_multiply(transpose(layers[i].weights), error),
+            matrix_activation(outputs[i], activation, true));
+        d_weights[i] = matrix_tile_multiply(error, transpose(activations[i]));
+        d_bias[i] = error;
+    }
+    
+    // update all weights using gradient descent
+    // todo: have a file for optimisers
+    for (size_t i = 0; i < num_layers; i++) {
+        // todo: do some matrix subtraction here
+        // weights -= learning_rate * d_weights
+        // bias -= learning_rate * d_bias
+    }
+    // DONE!
 }
 
 #ifdef _WIN32
 #include <windows.h>
-#elif defined(__APPLE__) 
+#elif defined(__APPLE__)
 #include <sys/sysctl.h>
 #endif
 
 void determine_cache(void) {
     size_t cache_size = 0;
 
-    #ifdef _WIN32
+#ifdef _WIN32
     DWORD bufferSize = 0;
     PSYSTEM_LOGICAL_PROCESSOR_INFORMATION buffer = NULL;
 
@@ -168,34 +240,34 @@ void determine_cache(void) {
         exit(1);
     }
 
-    // Check if the system is macOS
-    #elif __APPLE__
-        // Use sysctl to get the cache size on macOS
-        size_t len = sizeof(cache_size);
-        if (sysctlbyname("hw.l3cachesize", &cache_size, &len, NULL, 0) != 0) {
-            perror("sysctlbyname");
-            exit(1);
-        }
+// Check if the system is macOS
+#elif __APPLE__
+    // Use sysctl to get the cache size on macOS
+    size_t len = sizeof(cache_size);
+    if (sysctlbyname("hw.l3cachesize", &cache_size, &len, NULL, 0) != 0) {
+        perror("sysctlbyname");
+        exit(1);
+    }
 
-    // Check if the system is Linux
-    #elif __linux__
-        FILE *fp = fopen("/sys/devices/system/cpu/cpu0/cache/index2/size", "r");
-        if (fp != NULL) {
-            char buffer[16];
-            if (fgets(buffer, sizeof(buffer), fp)) {
-                cache_size = strtoul(buffer, NULL, 10) * 1024;
-            }
-            fclose(fp);
-        } else {
-            perror("fopen");
-            exit(1);
+// Check if the system is Linux
+#elif __linux__
+    FILE *fp = fopen("/sys/devices/system/cpu/cpu0/cache/index2/size", "r");
+    if (fp != NULL) {
+        char buffer[16];
+        if (fgets(buffer, sizeof(buffer), fp)) {
+            cache_size = strtoul(buffer, NULL, 10) * 1024;
         }
+        fclose(fp);
+    } else {
+        perror("fopen");
+        exit(1);
+    }
 
-    // Unsupported system
-    #else
-        fprintf(stderr, "Cache size determination is not supported on this operating system.\n");
-        return;
-    #endif
+// Unsupported system
+#else
+    fprintf(stderr, "Cache size determination is not supported on this operating system.\n");
+    return;
+#endif
 
     // Calculate tile size based on cache size
     tile_size = (int)sqrt((cache_size / sizeof(float)) / 3);
