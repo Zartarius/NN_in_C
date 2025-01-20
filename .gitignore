@@ -4,6 +4,9 @@
 *.so
 *.a
 *.exe
+*.obj
+
+*analysis.xml
 
 # Ignore build directories
 /build/

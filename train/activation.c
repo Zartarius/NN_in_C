@@ -3,8 +3,10 @@
 #include <assert.h>
 #include <errno.h>
 #include <math.h>
-#include <pthread.h>
 #include <stdio.h>
+#include <stdint.h>
+
+#include "../include/threads.h"
 
 extern size_t tile_size;
 
@@ -15,18 +17,18 @@ typedef struct {
     size_t start_col;
 } thread_args_t;
 
-static void *matrix_activation_sigmoid(void *arg);
-static void *matrix_d_activation_sigmoid(void *arg);
-static void *matrix_activation_softsign(void *arg);
-static void *matrix_d_activation_softsign(void *arg);
-static void *matrix_activation_relu(void *arg);
-static void *matrix_d_activation_relu(void *arg);
-static void *matrix_activation_tanh(void *arg);
-static void *matrix_d_activation_tanh(void *arg);
-static void *matrix_activation_leaky_relu(void *arg);
-static void *matrix_d_activation_leaky_relu(void *arg);
+static THREAD_ENTRY matrix_activation_sigmoid(thread_func_param_t arg);
+static THREAD_ENTRY matrix_d_activation_sigmoid(thread_func_param_t  arg);
+static THREAD_ENTRY matrix_activation_softsign(thread_func_param_t  arg);
+static THREAD_ENTRY matrix_d_activation_softsign(thread_func_param_t  arg);
+static THREAD_ENTRY matrix_activation_relu(thread_func_param_t  arg);
+static THREAD_ENTRY matrix_d_activation_relu(thread_func_param_t  arg);
+static THREAD_ENTRY matrix_activation_tanh(thread_func_param_t  arg);
+static THREAD_ENTRY matrix_d_activation_tanh(thread_func_param_t  arg);
+static THREAD_ENTRY matrix_activation_leaky_relu(thread_func_param_t  arg);
+static THREAD_ENTRY matrix_d_activation_leaky_relu(thread_func_param_t  arg);
 
-static void *matrix_activation_sigmoid(void *arg) {
+static THREAD_ENTRY matrix_activation_sigmoid(thread_func_param_t  arg) {
     thread_args_t *args = (thread_args_t *)arg;
     matrix_t *a = args->a;
     matrix_t *b = args->b;
@@ -38,10 +40,10 @@ static void *matrix_activation_sigmoid(void *arg) {
                 1.0 / (1.0 + exp(-a->values[i * a->n + j]));
         }
     }
-    return NULL;
+    return (thread_func_return_t)(uintptr_t)NULL;
 }
 
-static void *matrix_d_activation_sigmoid(void *arg) {
+static THREAD_ENTRY matrix_d_activation_sigmoid(thread_func_param_t  arg) {
     thread_args_t *args = (thread_args_t *)arg;
     matrix_t *a = args->a;
     matrix_t *b = args->b;
@@ -53,10 +55,10 @@ static void *matrix_d_activation_sigmoid(void *arg) {
             b->values[i * a->n + j] = value / ((1.0 + value) * (1.0 + value));
         }
     }
-    return NULL;
+    return (thread_func_return_t)(uintptr_t)NULL;
 }
 
-static void *matrix_activation_softsign(void *arg) {
+static THREAD_ENTRY  matrix_activation_softsign(thread_func_param_t  arg) {
     thread_args_t *args = (thread_args_t *)arg;
     matrix_t *a = args->a;
     matrix_t *b = args->b;
@@ -68,10 +70,10 @@ static void *matrix_activation_softsign(void *arg) {
             b->values[i * a->n + j] = val / (1.0 + fabs(val));
         }
     }
-    return NULL;
+    return (thread_func_return_t)(uintptr_t)NULL;
 }
 
-static void *matrix_d_activation_softsign(void *arg) {
+static THREAD_ENTRY matrix_d_activation_softsign(thread_func_param_t  arg) {
     thread_args_t *args = (thread_args_t *)arg;
     matrix_t *a = args->a;
     matrix_t *b = args->b;
@@ -83,10 +85,10 @@ static void *matrix_d_activation_softsign(void *arg) {
             b->values[i * a->n + j] = 1 / ((1 + fabs(val)) * (1 + fabs(val)));
         }
     }
-    return NULL;
+    return (thread_func_return_t)(uintptr_t)NULL;
 }
 
-static void *matrix_activation_relu(void *arg) {
+static THREAD_ENTRY matrix_activation_relu(thread_func_param_t  arg) {
     thread_args_t *args = (thread_args_t *)arg;
     matrix_t *a = args->a;
     matrix_t *b = args->b;
@@ -97,10 +99,10 @@ static void *matrix_activation_relu(void *arg) {
             b->values[i * a->n + j] = fmax(0.0, a->values[i * a->n + j]);
         }
     }
-    return NULL;
+    return (thread_func_return_t)(uintptr_t)NULL;
 }
 
-static void *matrix_d_activation_relu(void *arg) {
+static THREAD_ENTRY matrix_d_activation_relu(thread_func_param_t  arg) {
     thread_args_t *args = (thread_args_t *)arg;
     matrix_t *a = args->a;
     matrix_t *b = args->b;
@@ -111,10 +113,10 @@ static void *matrix_d_activation_relu(void *arg) {
             b->values[i * a->n + j] = a->values[i * a->n + j] > 0;
         }
     }
-    return NULL;
+    return (thread_func_return_t)(uintptr_t)NULL;
 }
 
-static void *matrix_activation_tanh(void *arg) {
+static THREAD_ENTRY matrix_activation_tanh(thread_func_param_t  arg) {
     thread_args_t *args = (thread_args_t *)arg;
     matrix_t *a = args->a;
     matrix_t *b = args->b;
@@ -125,10 +127,10 @@ static void *matrix_activation_tanh(void *arg) {
             b->values[i * a->n + j] = tanh(a->values[i * a->n + j]);
         }
     }
-    return NULL;
+    return (thread_func_return_t)(uintptr_t)NULL;
 }
 
-static void *matrix_d_activation_tanh(void *arg) {
+static THREAD_ENTRY matrix_d_activation_tanh(thread_func_param_t  arg) {
     thread_args_t *args = (thread_args_t *)arg;
     matrix_t *a = args->a;
     matrix_t *b = args->b;
@@ -140,12 +142,12 @@ static void *matrix_d_activation_tanh(void *arg) {
             b->values[i * a->n + j] = 1 - val * val;
         }
     }
-    return NULL;
+    return (thread_func_return_t)(uintptr_t)NULL;
 }
 
 #define LEAKY_RELU_ALPHA 0.01
 
-static void *matrix_activation_leaky_relu(void *arg) {
+static THREAD_ENTRY matrix_activation_leaky_relu(thread_func_param_t  arg) {
     thread_args_t *args = (thread_args_t *)arg;
     matrix_t *a = args->a;
     matrix_t *b = args->b;
@@ -157,10 +159,10 @@ static void *matrix_activation_leaky_relu(void *arg) {
             b->values[i * a->n + j] = (val > 0) ? val : LEAKY_RELU_ALPHA * val;
         }
     }
-    return NULL;
+    return (thread_func_return_t)(uintptr_t)NULL;
 }
 
-static void *matrix_d_activation_leaky_relu(void *arg) {
+static THREAD_ENTRY matrix_d_activation_leaky_relu(thread_func_param_t  arg) {
     thread_args_t *args = (thread_args_t *)arg;
     matrix_t *a = args->a;
     matrix_t *b = args->b;
@@ -172,12 +174,12 @@ static void *matrix_d_activation_leaky_relu(void *arg) {
             b->values[i * a->n + j] = val > 0 ? 1 : LEAKY_RELU_ALPHA;
         }
     }
-    return NULL;
+    return (thread_func_return_t)(uintptr_t)NULL;
 }
 
 matrix_t matrix_activation(matrix_t a, activation_func_t activation,
                            bool derivative) {
-    void *(*activation_function)(void *) = NULL;
+    thread_func_return_t(*activation_function)(thread_func_param_t) = NULL;
     switch (activation) {
         case SIGMOID:
             activation_function = derivative ? matrix_d_activation_sigmoid
@@ -208,8 +210,13 @@ matrix_t matrix_activation(matrix_t a, activation_func_t activation,
 
     size_t num_tiles_row_col = num_tiles_row * num_tiles_col;
 
-    pthread_t threads[num_tiles_row_col];
+    #ifdef _WIN32
+    thread_t *threads = malloc(num_tiles_row_col *sizeof(thread_t));
+    thread_args_t *args = malloc(num_tiles_row_col * sizeof(thread_args_t));
+    #else
+    thread_t threads[num_tiles_row_col];
     thread_args_t args[num_tiles_row_col];
+    #endif
 
     for (size_t i = 0; i < num_tiles_row; i++) {
         for (size_t j = 0; j < num_tiles_col; j++) {
@@ -217,18 +224,16 @@ matrix_t matrix_activation(matrix_t a, activation_func_t activation,
             args[i * num_tiles_col + j].b = &b;
             args[i * num_tiles_col + j].start_row = i * tile_size;
             args[i * num_tiles_col + j].start_col = j * tile_size;
-            if (pthread_create(&threads[i * num_tiles_col + j], NULL,
-                               activation_function,
-                               &args[i * num_tiles_col + j]) != 0) {
-                perror("pthread_create");
-                exit(1);
-            }
+            THREAD_CREATE(threads[i * num_tiles_col + j], activation_function, &args[i * num_tiles_col + j]);
         }
     }
 
-    for (size_t i = 0; i < num_tiles_row_col; i++) {
-        assert(pthread_join(threads[i], NULL) == 0);
-    }
+    THREAD_JOIN_AND_CLOSE(threads, num_tiles_row_col);
+
+    #ifdef _WIN32
+    free(threads);
+    free(args);
+    #endif
 
     return b;
 }

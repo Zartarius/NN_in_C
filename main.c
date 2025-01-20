@@ -12,7 +12,11 @@ int main() {
     size_t layer_info[] = {num_parameters, 256, 128, num_classes};
     size_t num_layers = sizeof(layer_info) / sizeof(size_t);
 
+
     create_network(layer_info, num_layers);
+
+    printf("Created network\n");
+
     matrix_t inputs = random_matrix(num_samples, num_parameters);
     result_t* predictions = predict(inputs);
 
