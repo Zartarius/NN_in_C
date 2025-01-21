@@ -78,38 +78,41 @@ void normalise(matrix_t matrix) {
 
 static THREAD_ENTRY parallel_row_adder(thread_func_param_t arg) {
     thread_args_t args = *(thread_args_t *)arg;
-    float *matrix_values = args.a->values;
-    float *vector_values = args.b->values;
+    float* matrix_values = args.a->values;
+    float* vector_values = args.b->values;
+    float* result_values = args.c->values;
     size_t n = args.a->n;                      // Equivalent to args.b->n
     size_t starting_cell = args.start_row * n; // The row to apply the addition on
     
-    for (size_t i = 0; i < n; i++) {
-        matrix_values[starting_cell + i] += vector_values[i];
-    }
-    
     /*
-    size_t end_cell = (args.start_row + 1) * n;
-    size_t i = args.start_row * n;
-    for (; i < end_cell - 7; i += 8) {
-        matrix_values[i] += vector_values[i];
-        matrix_values[i + 1] += vector_values[i + 1];
-        matrix_values[i + 2] += vector_values[i + 2];
-        matrix_values[i + 3] += vector_values[i + 3];
-        matrix_values[i + 4] += vector_values[i + 4];
-        matrix_values[i + 5] += vector_values[i + 5];
-        matrix_values[i + 6] += vector_values[i + 6];
-        matrix_values[i + 7] += vector_values[i + 7];
-    }
-
-    for (; i < end_cell; i++) {
-        matrix_values[i] += vector_values[i];
+    for (size_t i = 0; i < n; i++) {
+        result_values[starting_cell + i] = matrix_values[starting_cell + i] + vector_values[i];
     }
     */
+    // size_t end_cell = (args.start_row + 1) * n;
+    // size_t i = args.start_row * n;
+    size_t i = 0;
+    for (; i < n - 7; i += 8) {
+        size_t offset = starting_cell + i;
+        result_values[offset] = matrix_values[offset] + vector_values[i];
+        result_values[offset + 1] = matrix_values[offset + 1] + vector_values[i + 1];
+        result_values[offset + 2] = matrix_values[offset + 2] + vector_values[i + 2];
+        result_values[offset + 3] = matrix_values[offset + 3] + vector_values[i + 3];
+        result_values[offset + 4] = matrix_values[offset + 4] += vector_values[i + 4];
+        result_values[offset + 5] = matrix_values[offset + 5] + vector_values[i + 5];
+        result_values[offset + 6] = matrix_values[offset + 6] += vector_values[i + 6];
+        result_values[offset + 7] = matrix_values[offset + 7] += vector_values[i + 7];
+    }
+
+    for (; i < n; i++) {
+        result_values[starting_cell + i] = matrix_values[starting_cell + i] + vector_values[i];
+    }
+    
     return (thread_func_return_t)(uintptr_t)NULL;
 }
 
 // Add a vector row-wise to a matrix, to each row
-void matrix_add_vector(matrix_t matrix, matrix_t vector) {
+matrix_t matrix_add_vector(matrix_t matrix, matrix_t vector) {
     assert((matrix.n == vector.n) && vector.m == 1);
 
     #ifdef _WIN32
@@ -120,10 +123,11 @@ void matrix_add_vector(matrix_t matrix, matrix_t vector) {
     thread_args_t args[matrix.m];
     #endif
 
+    matrix_t result = zeroes(matrix.m, matrix.n);
     for (size_t i = 0; i < matrix.m; i++) {
         args[i].a = &matrix;
         args[i].b = &vector;
-        args[i].c = NULL; // We only need 2 matrices of course
+        args[i].c = &result; 
         args[i].start_row = i;
         args[i].start_col = -1; // We don't need this
         
@@ -138,6 +142,8 @@ void matrix_add_vector(matrix_t matrix, matrix_t vector) {
     free(threads);
     free(args);
     #endif
+
+    return result;
 }
 
 // Returns the transpose of a matrix
@@ -254,6 +260,41 @@ matrix_t matrix_tile_multiply(matrix_t a, matrix_t b) {
     #endif
 
     return c;
+}
+
+float add(float x, float y) {
+    return x + y;
+}
+
+float multiply(float x, float y) {
+    return x * y;
+}
+
+// Takes in either 1 or 2 matrices (pass in b as NULL if only passing in 1 matrix).
+// Scalar ignored if 2 matrices passed in
+matrix_t matrix_apply(matrix_t* a, matrix_t* b, const float scalar, float (*function)(float, float)) {
+    assert(a != NULL);
+    matrix_t result = zeroes(a->m, a->n);
+
+    // We want to do a scalar multiplication, or addition of a constant to the whole matrix
+    if (b == NULL) {
+        for (size_t i = 0; i < a->m; i++) {
+            for (size_t j = 0; j < a->n; j++) {
+                size_t index = i * a->n + j;
+                result.values[index] = function(a->values[index], scalar);
+            }
+        }
+        return result;
+    }
+
+    assert((a-> m == b->m) && (a->n == b->n));
+    for (size_t i = 0; i < a->m; i++) {
+        for (size_t j = 0; j < a->n; j++) {
+            size_t index = i * a->n + j;
+            result.values[index] = function(a->values[index], b->values[index]);
+        }
+    }
+    return result;
 }
 
 void print_matrix(matrix_t matrix) {
