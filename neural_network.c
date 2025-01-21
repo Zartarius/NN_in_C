@@ -94,7 +94,10 @@ result_t *predict(matrix_t X) {
     for (size_t i = 0; i < num_layers; i++) {
         printf("Layer: %zu\n", i);
         matrix_t output = matrix_tile_multiply(input, layers[i].weights);
-        matrix_add_vector(output, layers[i].biases);
+        matrix_t temp = matrix_add_vector(output, layers[i].biases);
+        free(output.values); 
+        output = temp;
+
         printf("Success on %zu\n", i);
 
         if (i == num_layers - 1) {
