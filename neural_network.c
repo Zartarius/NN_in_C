@@ -134,12 +134,14 @@ result_t predict(matrix_t X) {
 
 void train(matrix_t X, matrix_t Y) {
     matrix_t input = X;
+    printf("DIMS (initial): %zu %zu\n", input.m, input.n);
     matrix_t *outputs = malloc(num_layers * sizeof(matrix_t)); // before activations
 
     // - 1 because we do it manually for output layer
     matrix_t *activations = malloc((num_layers - 1) * sizeof(matrix_t));
     for (size_t i = 0; i < num_layers; i++) {
         printf("Layer: %zu\n", i);
+        printf("DIMS: %zu %zu\n", input.m, input.n);
         outputs[i] = input;
 
         matrix_t output = matrix_tile_multiply(input, layers[i].weights);
@@ -158,11 +160,13 @@ void train(matrix_t X, matrix_t Y) {
 
     result_t results;
     results.distribution = softmax_regression(input);
+    printf("Success on softmax\n");
+    printf("OUTPUT DIMS: %zu %zu\n", input.m, input.n);
     matrix_t loss = matrix_d_loss(input, Y, loss_func, true);
     // normally we would do derivative of loss * derivative of activation function
     // which becomes derivative of categorical * derivative of softmax
     // theres a trick where u can just combine the two and avoid heavy computations
-    matrix_t error = loss;
+    matrix_t error = transpose(loss);
 
     // todo: start from num_layers - 2
     matrix_t *d_weights = malloc(sizeof(matrix_t) * num_layers);
@@ -184,6 +188,8 @@ void train(matrix_t X, matrix_t Y) {
     // todo: have a file for optimisers
     for (size_t i = 0; i < num_layers; i++) {
         // todo: do some matrix subtraction here
+        matrix_apply(&layers[i].weights, &d_weights[i], learning_rate, subtract);
+        matrix_apply(&layers[i].biases, &d_bias[i], learning_rate, subtract);
         // weights -= learning_rate * d_weights
         // bias -= learning_rate * d_bias
     }

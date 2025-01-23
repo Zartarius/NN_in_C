@@ -2,10 +2,11 @@
 
 #include <assert.h>
 #include <math.h>
-#include "../include/threads.h"
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdint.h>
+
+#include "../include/threads.h"
 
 extern size_t tile_size;
 
@@ -262,6 +263,8 @@ float matrix_loss(matrix_t Y, matrix_t actual, loss_func_t loss) {
             break;
     }
 
+    printf("Loss dims: %zu %zu %zu %zu\n", Y.m, Y.n, actual.m, actual.n);
+
     assert(Y.m == actual.m && Y.n == actual.n);
 
     size_t num_tiles_row = (Y.m + tile_size - 1) / tile_size;
@@ -269,13 +272,13 @@ float matrix_loss(matrix_t Y, matrix_t actual, loss_func_t loss) {
 
     size_t num_tiles_row_col = num_tiles_row * num_tiles_col;
 
-    #ifdef _WIN32
-    thread_t *threads = malloc(num_tiles_row_col *sizeof(thread_t));
+#ifdef _WIN32
+    thread_t *threads = malloc(num_tiles_row_col * sizeof(thread_t));
     thread_args_t *args = malloc(num_tiles_row_col * sizeof(thread_args_t));
-    #else
+#else
     thread_t threads[num_tiles_row_col];
     thread_args_t args[num_tiles_row_col];
-    #endif
+#endif
 
     for (size_t i = 0; i < num_tiles_row; i++) {
         for (size_t j = 0; j < num_tiles_col; j++) {
@@ -284,7 +287,8 @@ float matrix_loss(matrix_t Y, matrix_t actual, loss_func_t loss) {
             args[i * num_tiles_col + j].c = NULL;
             args[i * num_tiles_col + j].start_row = i * tile_size;
             args[i * num_tiles_col + j].start_col = j * tile_size;
-            THREAD_CREATE(threads[i * num_tiles_col + j], loss_function, &args[i * num_tiles_col + j]);
+            THREAD_CREATE(threads[i * num_tiles_col + j], loss_function,
+                          &args[i * num_tiles_col + j]);
         }
     }
 
@@ -298,17 +302,17 @@ float matrix_loss(matrix_t Y, matrix_t actual, loss_func_t loss) {
         free(result);
     }
 
-    #ifdef _WIN32
+#ifdef _WIN32
     free(threads);
     free(args);
-    #endif
+#endif
 
     return sum / (Y.m * Y.n);
 }
 
 matrix_t matrix_d_loss(matrix_t Y, matrix_t actual, loss_func_t loss,
                        bool uses_softmax) {
-    thread_func_return_t(*loss_d_function)(thread_func_param_t) = NULL;
+    thread_func_return_t (*loss_d_function)(thread_func_param_t) = NULL;
     switch (loss) {
         case MSE:
             loss_d_function = matrix_d_loss_mae;
@@ -328,6 +332,9 @@ matrix_t matrix_d_loss(matrix_t Y, matrix_t actual, loss_func_t loss,
             break;
     }
 
+    printf("Loss dims: %zu %zu %zu %zu %d\n", Y.m, Y.n, actual.m, actual.n,
+           Y.m == actual.m && Y.n == actual.n);
+
     assert(Y.m == actual.m && Y.n == actual.n);
 
     matrix_t c = zeroes(Y.m, Y.n);
@@ -337,14 +344,13 @@ matrix_t matrix_d_loss(matrix_t Y, matrix_t actual, loss_func_t loss,
 
     size_t num_tiles_row_col = num_tiles_row * num_tiles_col;
 
-    #ifdef _WIN32
-    thread_t *threads = malloc(num_tiles_row_col *sizeof(thread_t));
+#ifdef _WIN32
+    thread_t *threads = malloc(num_tiles_row_col * sizeof(thread_t));
     thread_args_t *args = malloc(num_tiles_row_col * sizeof(thread_args_t));
-    #else
+#else
     thread_t threads[num_tiles_row_col];
     thread_args_t args[num_tiles_row_col];
-    #endif
-
+#endif
 
     for (size_t i = 0; i < num_tiles_row; i++) {
         for (size_t j = 0; j < num_tiles_col; j++) {
@@ -353,16 +359,17 @@ matrix_t matrix_d_loss(matrix_t Y, matrix_t actual, loss_func_t loss,
             args[i * num_tiles_col + j].c = &c;
             args[i * num_tiles_col + j].start_row = i * tile_size;
             args[i * num_tiles_col + j].start_col = j * tile_size;
-            THREAD_CREATE(threads[i * num_tiles_col + j], loss_d_function, &args[i * num_tiles_col + j]);
+            THREAD_CREATE(threads[i * num_tiles_col + j], loss_d_function,
+                          &args[i * num_tiles_col + j]);
         }
     }
 
     THREAD_JOIN_AND_CLOSE(threads, num_tiles_row_col);
 
-    #ifdef _WIN32
+#ifdef _WIN32
     free(threads);
     free(args);
-    #endif
+#endif
 
     return c;
 }

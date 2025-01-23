@@ -98,10 +98,10 @@ static THREAD_ENTRY parallel_row_adder(thread_func_param_t arg) {
         result_values[offset + 1] = matrix_values[offset + 1] + vector_values[i + 1];
         result_values[offset + 2] = matrix_values[offset + 2] + vector_values[i + 2];
         result_values[offset + 3] = matrix_values[offset + 3] + vector_values[i + 3];
-        result_values[offset + 4] = matrix_values[offset + 4] += vector_values[i + 4];
+        result_values[offset + 4] = matrix_values[offset + 4] + vector_values[i + 4];
         result_values[offset + 5] = matrix_values[offset + 5] + vector_values[i + 5];
-        result_values[offset + 6] = matrix_values[offset + 6] += vector_values[i + 6];
-        result_values[offset + 7] = matrix_values[offset + 7] += vector_values[i + 7];
+        result_values[offset + 6] = matrix_values[offset + 6] + vector_values[i + 6];
+        result_values[offset + 7] = matrix_values[offset + 7] + vector_values[i + 7];
     }
 
     for (; i < n; i++) {
@@ -216,6 +216,7 @@ static THREAD_ENTRY compute_tile(thread_func_param_t arg) {
 // Function to multiply two matrices using tiles, threads, and AVX
 matrix_t matrix_tile_multiply(matrix_t a, matrix_t b) {
     // printf("%zu %zu |  %zu %zu\n", a.n, a.m, b.n, b.m);
+    printf("%zu %zu |  %zu %zu\n", a.n, a.m, b.n, b.m);
     assert(a.n == b.m);
 
     // Create the result matrix
@@ -266,6 +267,10 @@ float add(float x, float y) {
     return x + y;
 }
 
+float subtract(float x, float y) {
+    return x - y;
+}
+
 float multiply(float x, float y) {
     return x * y;
 }
@@ -291,7 +296,7 @@ matrix_t matrix_apply(matrix_t* a, matrix_t* b, const float scalar, float (*func
     for (size_t i = 0; i < a->m; i++) {
         for (size_t j = 0; j < a->n; j++) {
             size_t index = i * a->n + j;
-            result.values[index] = function(a->values[index], b->values[index]);
+            result.values[index] = scalar * function(a->values[index], b->values[index]);
         }
     }
     return result;
@@ -311,4 +316,18 @@ void print_matrix(matrix_t matrix) {
         printf("|\n");
     }
     printf("\n");
+}
+
+matrix_t scalar_to_one_hot_encoding(size_t index, size_t num_classes) {
+    matrix_t result = zeroes(1, num_classes);
+    result.values[index] = 1;
+    return result;
+}
+
+matrix_t extract_vector(matrix_t matrix, size_t index) {
+    matrix_t result = zeroes(1, matrix.n);
+    for (size_t i = 0; i < matrix.n; i++) {
+        result.values[i] = matrix.values[index * matrix.n + i];
+    }
+    return result;
 }
